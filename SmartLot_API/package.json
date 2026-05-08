@@ -7,9 +7,14 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db-test": "node ./database/db.js"
+
   },
   "dependencies": {
-    "express": "^5.2.1"
+    "@supabase/supabase-js": "^2.105.3",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "pg": "^8.20.0"
   }
 }
