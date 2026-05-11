@@ -1,6 +1,5 @@
 // modeloController.js
 import { Router } from 'express';
-import { StatusCodes } from 'http-status-codes';
 import ModeloService from './../services/modeloService.js';
 import Modelo from './../entities/modelo.js';
 

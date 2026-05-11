@@ -1,7 +1,4 @@
 // empresaRepository.js
-import pkg from 'pg';
-import LogHelper from './../helpers/log-helper.js';
-import config from './../configs/db-config.js';
 
 const { Pool } = pkg;
 
