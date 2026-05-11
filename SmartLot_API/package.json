@@ -9,7 +9,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "db-test": "node ./database/db.js",
-    "app": "node src/app.js"
+    "app": "node src/appTest.js"
 
   },
   "dependencies": {
