@@ -1,2 +1,6 @@
-console.log("todo ok")
-console.log("todo ok")
+// sedeService.js
+import SedeRepository from '../repositories/sedeRepository.js';
+
+export default class SedeService {
+
+}

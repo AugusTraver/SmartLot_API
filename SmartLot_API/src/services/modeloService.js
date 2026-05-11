@@ -1,1 +1,6 @@
-console.log("todo ok")
+// modeloService.js
+import ModeloRepository from '../repositories/modeloRepository.js';
+
+export default class ModeloService {
+
+}

@@ -1,2 +1,6 @@
-console.log("todo ok")
-console.log("todo ok")
+// garageService.js
+import GarageRepository from '../repositories/garageRepository.js';
+
+export default class GarageService {
+
+}

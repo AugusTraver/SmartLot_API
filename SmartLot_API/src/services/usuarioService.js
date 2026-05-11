@@ -1,2 +1,6 @@
-console.log("todo ok")
-console.log("todo ok")
+// usuarioService.js
+import UsuarioRepository from '../repositories/usuarioRepository.js';
+
+export default class UsuarioService {
+
+}

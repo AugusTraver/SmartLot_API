@@ -10,12 +10,14 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "db-test": "node ./database/db.js",
     "app": "node src/appTest.js"
-
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.3",
+    "axios": "^1.16.0",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "routes": "^2.1.0"
   }
 }
