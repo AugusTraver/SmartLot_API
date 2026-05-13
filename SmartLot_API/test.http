@@ -1,0 +1,12 @@
+POST http://localhost:3000/api/usuario
+Content-Type: application/json
+
+{
+  "id_rol": 1,
+  "nombre": "Tobias",
+  "apellido": "Videito Rhor",
+  "id_sede": 2,
+  "email": "Videito(amo_a_Maica)@gmail.com",
+  "telefono": "maica_es_mi_vida",
+  "contraseña": "1234"
+}

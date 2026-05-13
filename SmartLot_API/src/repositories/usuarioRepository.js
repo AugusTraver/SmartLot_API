@@ -23,10 +23,10 @@ export default class UsuarioRepository {
     createAsync = async (entity) => {
         try {
             const result = await pool.query(
-                `INSERT INTO usuarios (id_rol, nombre, apellido, id_sede, email, telefono, contraseña)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+                `INSERT INTO usuarios (id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
                 [entity.id_rol, entity.nombre, entity.apellido, entity.id_sede,
-                 entity.email, entity.telefono, entity.contraseña]
+                 entity.email, entity.telefono, entity.contraseña, entity.id_empresa]
             );
             return result.rows[0];
         } catch (error) { console.error(error); return null; }
@@ -36,9 +36,9 @@ export default class UsuarioRepository {
         try {
             const result = await pool.query(
                 `UPDATE usuarios SET id_rol=$1, nombre=$2, apellido=$3, id_sede=$4,
-                 email=$5, telefono=$6, contraseña=$7 WHERE id=$8 RETURNING *`,
+                 email=$5, telefono=$6, contraseña=$7, id_empresa=$8 WHERE id=$9 RETURNING *`,
                 [entity.id_rol, entity.nombre, entity.apellido, entity.id_sede,
-                 entity.email, entity.telefono, entity.contraseña, id]
+                 entity.email, entity.telefono, entity.contraseña, entity.id_empresa, id]
             );
             return result.rows[0] ?? null;
         } catch (error) { console.error(error); return null; }
