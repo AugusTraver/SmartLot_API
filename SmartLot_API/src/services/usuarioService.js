@@ -2,15 +2,14 @@
 import UsuarioRepository from '../repositories/usuarioRepository.js';
 
 export default class UsuarioService {
-   constructor() {
-        console.log('Estoy en: usuarioService.constructor()');
-        this.UsuarioRepository = new UsuarioRepository();
+    constructor() {
+        console.log('Estoy en: UsuarioService.constructor()');
+        this.repo = new UsuarioRepository();
     }
 
-    getAllAsync = async () => {
-        console.log(`UsuarioService.getAllAsync()`);
-        const returnArray = await this.UsuarioRepository.getAllAsync();
-        if (returnArray == null) return null;
-       
-    }
+    getAllAsync = async () => await this.repo.getAllAsync();
+    getByIdAsync = async (id) => await this.repo.getByIdAsync(id);
+    createAsync = async (entity) => await this.repo.createAsync(entity);
+    updateAsync = async (id, entity) => await this.repo.updateAsync(id, entity);
+    deleteAsync = async (id) => await this.repo.deleteAsync(id);
 }

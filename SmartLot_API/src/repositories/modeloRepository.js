@@ -1,17 +1,49 @@
 // modeloRepository.js
-
-const { Pool } = pkg;
+import pool from '../database/db.js';
 
 export default class ModeloRepository {
     constructor() {
         console.log('Estoy en: ModeloRepository.constructor()');
-        this.DBPool = null;
     }
 
-    getDBPool = () => {
-        if (this.DBPool == null) {
-            this.DBPool = new Pool(config);
-        }
-        return this.DBPool;
+    getAllAsync = async () => {
+        try {
+            const result = await pool.query('SELECT * FROM modelos ORDER BY id');
+            return result.rows;
+        } catch (error) { console.error(error); return null; }
+    }
+
+    getByIdAsync = async (id) => {
+        try {
+            const result = await pool.query('SELECT * FROM modelos WHERE id = $1', [id]);
+            return result.rows[0] ?? null;
+        } catch (error) { console.error(error); return null; }
+    }
+
+    createAsync = async (entity) => {
+        try {
+            const result = await pool.query(
+                'INSERT INTO modelos (id_marca, nombre) VALUES ($1, $2) RETURNING *',
+                [entity.id_marca, entity.nombre]
+            );
+            return result.rows[0];
+        } catch (error) { console.error(error); return null; }
+    }
+
+    updateAsync = async (id, entity) => {
+        try {
+            const result = await pool.query(
+                'UPDATE modelos SET id_marca = $1, nombre = $2 WHERE id = $3 RETURNING *',
+                [entity.id_marca, entity.nombre, id]
+            );
+            return result.rows[0] ?? null;
+        } catch (error) { console.error(error); return null; }
+    }
+
+    deleteAsync = async (id) => {
+        try {
+            const result = await pool.query('DELETE FROM modelos WHERE id = $1', [id]);
+            return result.rowCount > 0;
+        } catch (error) { console.error(error); return false; }
     }
 }

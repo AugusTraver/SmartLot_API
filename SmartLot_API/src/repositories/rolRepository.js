@@ -1,17 +1,49 @@
 // rolRepository.js
-
-const { Pool } = pkg;
+import pool from '../database/db.js';
 
 export default class RolRepository {
     constructor() {
         console.log('Estoy en: RolRepository.constructor()');
-        this.DBPool = null;
     }
 
-    getDBPool = () => {
-        if (this.DBPool == null) {
-            this.DBPool = new Pool(config);
-        }
-        return this.DBPool;
+    getAllAsync = async () => {
+        try {
+            const result = await pool.query('SELECT * FROM roles ORDER BY id');
+            return result.rows;
+        } catch (error) { console.error(error); return null; }
+    }
+
+    getByIdAsync = async (id) => {
+        try {
+            const result = await pool.query('SELECT * FROM roles WHERE id = $1', [id]);
+            return result.rows[0] ?? null;
+        } catch (error) { console.error(error); return null; }
+    }
+
+    createAsync = async (entity) => {
+        try {
+            const result = await pool.query(
+                'INSERT INTO roles (tipo_rol) VALUES ($1) RETURNING *',
+                [entity.tipo_rol]
+            );
+            return result.rows[0];
+        } catch (error) { console.error(error); return null; }
+    }
+
+    updateAsync = async (id, entity) => {
+        try {
+            const result = await pool.query(
+                'UPDATE roles SET tipo_rol = $1 WHERE id = $2 RETURNING *',
+                [entity.tipo_rol, id]
+            );
+            return result.rows[0] ?? null;
+        } catch (error) { console.error(error); return null; }
+    }
+
+    deleteAsync = async (id) => {
+        try {
+            const result = await pool.query('DELETE FROM roles WHERE id = $1', [id]);
+            return result.rowCount > 0;
+        } catch (error) { console.error(error); return false; }
     }
 }

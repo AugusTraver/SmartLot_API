@@ -1,17 +1,53 @@
 // reservaRepository.js
-
-const { Pool } = pkg;
+import pool from '../database/db.js';
 
 export default class ReservaRepository {
     constructor() {
         console.log('Estoy en: ReservaRepository.constructor()');
-        this.DBPool = null;
     }
 
-    getDBPool = () => {
-        if (this.DBPool == null) {
-            this.DBPool = new Pool(config);
-        }
-        return this.DBPool;
+    getAllAsync = async () => {
+        try {
+            const result = await pool.query('SELECT * FROM reservas ORDER BY id');
+            return result.rows;
+        } catch (error) { console.error(error); return null; }
+    }
+
+    getByIdAsync = async (id) => {
+        try {
+            const result = await pool.query('SELECT * FROM reservas WHERE id = $1', [id]);
+            return result.rows[0] ?? null;
+        } catch (error) { console.error(error); return null; }
+    }
+
+    createAsync = async (entity) => {
+        try {
+            const result = await pool.query(
+                `INSERT INTO reservas (id_usuario, id_garage, id_vehiculo, fecha_entrada, fecha_salida, entro, salio)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+                [entity.id_usuario, entity.id_garage, entity.id_vehiculo,
+                 entity.fecha_entrada, entity.fecha_salida, entity.entro, entity.salio]
+            );
+            return result.rows[0];
+        } catch (error) { console.error(error); return null; }
+    }
+
+    updateAsync = async (id, entity) => {
+        try {
+            const result = await pool.query(
+                `UPDATE reservas SET id_usuario=$1, id_garage=$2, id_vehiculo=$3,
+                 fecha_entrada=$4, fecha_salida=$5, entro=$6, salio=$7 WHERE id=$8 RETURNING *`,
+                [entity.id_usuario, entity.id_garage, entity.id_vehiculo,
+                 entity.fecha_entrada, entity.fecha_salida, entity.entro, entity.salio, id]
+            );
+            return result.rows[0] ?? null;
+        } catch (error) { console.error(error); return null; }
+    }
+
+    deleteAsync = async (id) => {
+        try {
+            const result = await pool.query('DELETE FROM reservas WHERE id = $1', [id]);
+            return result.rowCount > 0;
+        } catch (error) { console.error(error); return false; }
     }
 }
