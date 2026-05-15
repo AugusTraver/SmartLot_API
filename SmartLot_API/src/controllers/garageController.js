@@ -11,7 +11,19 @@ router.get('', async (req, res) => {
         data != null ? res.status(200).json(data) : res.status(500).send('Error interno.');
     } catch (e) { res.status(500).send(`Error: ${e.message}`); }
 });
+router.get('/ocupacion_reserva', async (req, res) => {
+    try {
+        const data = await svc.getOcupacionAsync(req.params.id);
+        data != null ? res.status(200).json(data) : res.status(500).send('Error interno.');
+    } catch (e) { res.status(500).send(`Error: ${e.message}`); }
+});
 
+router.get('/ocupacion_no_reserva', async (req, res) => {
+    try {
+        const data = await svc.getOcupacionReservaAsync(req.params.id);
+        data != null ? res.status(200).json(data) : res.status(500).send('Error interno.');
+    } catch (e) { res.status(500).send(`Error: ${e.message}`); }
+});
 router.get('/:id', async (req, res) => {
     try {
         const data = await svc.getByIdAsync(req.params.id);

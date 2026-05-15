@@ -12,4 +12,6 @@ export default class GarageService {
     createAsync = async (entity) => await this.repo.createAsync(entity);
     updateAsync = async (id, entity) => await this.repo.updateAsync(id, entity);
     deleteAsync = async (id) => await this.repo.deleteAsync(id);
+    getOcupacionAsync = async (id) => await this.repo.getOcupacionAsync(id);
+    getOcupacionReservaAsync = async (id) => await this.repo.getOcupacionAsync(id);
 }
