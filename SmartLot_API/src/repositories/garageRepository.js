@@ -32,17 +32,40 @@ export default class GarageRepository {
         } catch (error) { console.error(error); return null; }
     }
 
-    updateAsync = async (id, entity) => {
-        try {
-            const result = await pool.query(
-                `UPDATE garages SET id_sede=$1, nombre=$2, piso=$3, ubicacion=$4, estado=$5,
-                 capacidad=$6, capacidad_para_no_reservas=$7, capacidad_reservas=$8; ocupacion_reservas = $9, ocupacion_no_reservas = $10 WHERE id=$11 RETURNING *`,
-                [entity.id_sede, entity.nombre, entity.piso, entity.ubicacion, entity.estado,
-                entity.capacidad, entity.capacidad_para_no_reservas, entity.capacidad_reservas, entity.ocupacion_reservas, entity.ocupacion_no_reservas, id]
-            );
-            return result.rows[0] ?? null;
-        } catch (error) { console.error(error); return null; }
-    }
+updateAsync = async (id, entity) => {
+    // No usamos try/catch aquí para que el error real llegue al controller
+    const result = await pool.query(
+        `UPDATE garages SET 
+            id_sede=$1, 
+            nombre=$2, 
+            piso=$3, 
+            ubicacion=$4, 
+            estado=$5,
+            capacidad=$6, 
+            capacidad_para_no_reservas=$7, 
+            capacidad_reservas=$8, 
+            ocupacion_reservas = $9, 
+            ocupacion_no_reservas = $10 
+         WHERE id=$11 
+         RETURNING *`,
+        [
+            entity.id_sede, 
+            entity.nombre, 
+            entity.piso, 
+            entity.ubicacion, 
+            entity.estado,
+            entity.capacidad, 
+            entity.capacidad_para_no_reservas, 
+            entity.capacidad_reservas, 
+            entity.ocupacion_reservas, 
+            entity.ocupacion_no_reservas, 
+            id
+        ]
+    );
+
+    // Si no afectó ninguna fila, devuelve null (aquí sí es un 404 real)
+    return result.rows[0] ?? null;
+}
 
     deleteAsync = async (id) => {
         try {
