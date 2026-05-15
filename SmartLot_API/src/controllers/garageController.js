@@ -4,42 +4,85 @@ import GarageService from './../services/garageService.js';
 const router = Router();
 const svc = new GarageService();
 
+// GET ALL
 router.get('', async (req, res) => {
     try {
         const data = await svc.getAllAsync();
         data != null ? res.status(200).json(data) : res.status(500).send('Error interno.');
-    } catch (e) { res.status(500).send(`Error: ${e.message}`); }
+    } catch (e) { 
+        console.error("Error en GET /garage:", e.message);
+        res.status(500).send(`Error: ${e.message}`); 
+    }
 });
+
+// GET OCUPACION RESERVA BY ID
 router.get('/ocupacion_reserva/:id', async (req, res) => {
     try {
-        const data = await svc.getOcupacionReservaAsync(req.params.id);
-        data != null ? res.status(200).json(data) : res.status(500).send('Error interno.');
-    } catch (e) { res.status(500).send(`Error: ${e.message}`); }
+        const id = parseInt(req.params.id);
+        if (isNaN(id)) {
+            return res.status(400).send('El ID proporcionado no es válido.');
+        }
+
+        const data = await svc.getOcupacionReservaAsync(id);
+        data != null ? res.status(200).json(data) : res.status(404).send('No encontrado.');
+    } catch (e) { 
+        console.error(`Error en GET /garage/ocupacion_reserva/${req.params.id}:`, e.message);
+        res.status(500).send(`Error: ${e.message}`); 
+    }
 });
 
+// GET OCUPACION NO RESERVA BY ID
 router.get('/ocupacion_no_reserva/:id', async (req, res) => {
     try {
-        const data = await svc.getOcupacionNoReservaAsync(req.params.id);
-        data != null ? res.status(200).json(data) : res.status(500).send('Error interno.');
-    } catch (e) { res.status(500).send(`Error: ${e.message}`); }
+        const id = parseInt(req.params.id);
+        if (isNaN(id)) {
+            return res.status(400).send('El ID proporcionado no es válido.');
+        }
+
+        const data = await svc.getOcupacionNoReservaAsync(id);
+        data != null ? res.status(200).json(data) : res.status(404).send('No encontrado.');
+    } catch (e) { 
+        console.error(`Error en GET /garage/ocupacion_no_reserva/${req.params.id}:`, e.message);
+        res.status(500).send(`Error: ${e.message}`); 
+    }
 });
+
+// GET BY ID
 router.get('/:id', async (req, res) => {
     try {
-        const data = await svc.getByIdAsync(req.params.id);
+        const id = parseInt(req.params.id);
+        if (isNaN(id)) {
+            return res.status(400).send('El ID proporcionado no es válido.');
+        }
+
+        const data = await svc.getByIdAsync(id);
         data != null ? res.status(200).json(data) : res.status(404).send('No encontrado.');
-    } catch (e) { res.status(500).send(`Error: ${e.message}`); }
+    } catch (e) { 
+        console.error(`Error en GET /garage/${req.params.id}:`, e.message);
+        res.status(500).send(`Error: ${e.message}`); 
+    }
 });
 
+// CREATE (POST)
 router.post('', async (req, res) => {
     try {
+        // Aquí no hay ID en la URL, pero si quisieras podrías validar que req.body no esté vacío
+        if (!req.body || Object.keys(req.body).length === 0) {
+             return res.status(400).send('El cuerpo de la petición (body) no puede estar vacío.');
+        }
+
         const data = await svc.createAsync(req.body);
-        data != null ? res.status(201).json(data) : res.status(500).send('Error interno.');
-    } catch (e) { res.status(500).send(`Error: ${e.message}`); }
+        data != null ? res.status(201).json(data) : res.status(500).send('Error interno al crear el garage.');
+    } catch (e) { 
+        console.error("Error en POST /garage:", e.message);
+        res.status(500).send(`Error: ${e.message}`); 
+    }
 });
 
+// UPDATE (PUT)
 router.put('/:id', async (req, res) => {
     try {
-        const id = parseInt(req.params.id); // Aseguramos que sea número
+        const id = parseInt(req.params.id);
         
         if (isNaN(id)) {
             return res.status(400).send('El ID proporcionado no es válido.');
@@ -50,21 +93,29 @@ router.put('/:id', async (req, res) => {
         if (data !== null) {
             res.status(200).json(data);
         } else {
-            // Aquí entra si el ID no existe en la DB
             res.status(404).send('No encontrado: El garage con ese ID no existe.');
         }
     } catch (e) {
-        // Aquí entrará si hay un error de SQL (ej: mandaste un string en un campo de número)
-        console.error("Error en PUT /garage:", e.message);
+        console.error(`Error en PUT /garage/${req.params.id}:`, e.message);
         res.status(500).send(`Error de base de datos: ${e.message}`);
     }
 });
 
+// DELETE
 router.delete('/:id', async (req, res) => {
     try {
-        const ok = await svc.deleteAsync(req.params.id);
-        ok ? res.status(200).send('Eliminado.') : res.status(404).send('No encontrado.');
-    } catch (e) { res.status(500).send(`Error: ${e.message}`); }
+        const id = parseInt(req.params.id);
+        
+        if (isNaN(id)) {
+            return res.status(400).send('El ID proporcionado no es válido.');
+        }
+
+        const ok = await svc.deleteAsync(id);
+        ok ? res.status(200).send('Eliminado exitosamente.') : res.status(404).send('No encontrado: El garage con ese ID no existe.');
+    } catch (e) { 
+        console.error(`Error en DELETE /garage/${req.params.id}:`, e.message);
+        res.status(500).send(`Error: ${e.message}`); 
+    }
 });
 
 export default router;
