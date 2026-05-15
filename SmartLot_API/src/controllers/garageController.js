@@ -1,4 +1,3 @@
-// garageController.js
 import { Router } from 'express';
 import GarageService from './../services/garageService.js';
 
