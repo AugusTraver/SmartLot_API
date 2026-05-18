@@ -11,7 +11,7 @@ router.get('', async (req, res) => {
         const data = await svc.getAllAsync();
         data != null ? res.status(200).json(data) : res.status(500).send('Error interno.');
     } catch (e) { 
-        console.error("Error en GET /garage:", e.message);
+        console.error("Error en GET /rol:", e.message);
         res.status(500).send(`Error: ${e.message}`); 
     }
 });
@@ -27,7 +27,7 @@ router.get('/:id', async (req, res) => {
         const data = await svc.getByIdAsync(id);
         data != null ? res.status(200).json(data) : res.status(404).send('No encontrado.');
     } catch (e) { 
-        console.error(`Error en GET /garage/${req.params.id}:`, e.message);
+        console.error(`Error en GET /rol/${req.params.id}:`, e.message);
         res.status(500).send(`Error: ${e.message}`); 
     }
 });
@@ -41,9 +41,9 @@ router.post('', async (req, res) => {
         }
 
         const data = await svc.createAsync(req.body);
-        data != null ? res.status(201).json(data) : res.status(500).send('Error interno al crear el garage.');
+        data != null ? res.status(201).json(data) : res.status(500).send('Error interno al crear el rol.');
     } catch (e) { 
-        console.error("Error en POST /garage:", e.message);
+        console.error("Error en POST /rol:", e.message);
         res.status(500).send(`Error: ${e.message}`); 
     }
 });
@@ -62,10 +62,10 @@ router.put('/:id', async (req, res) => {
         if (data !== null) {
             res.status(200).json(data);
         } else {
-            res.status(404).send('No encontrado: El garage con ese ID no existe.');
+            res.status(404).send('No encontrado: El rol con ese ID no existe.');
         }
     } catch (e) {
-        console.error(`Error en PUT /garage/${req.params.id}:`, e.message);
+        console.error(`Error en PUT /rol/${req.params.id}:`, e.message);
         res.status(500).send(`Error de base de datos: ${e.message}`);
     }
 });
@@ -80,9 +80,9 @@ router.delete('/:id', async (req, res) => {
         }
 
         const ok = await svc.deleteAsync(id);
-        ok ? res.status(200).send('Eliminado exitosamente.') : res.status(404).send('No encontrado: El garage con ese ID no existe.');
+        ok ? res.status(200).send('Eliminado exitosamente.') : res.status(404).send('No encontrado: El rol con ese ID no existe.');
     } catch (e) { 
-        console.error(`Error en DELETE /garage/${req.params.id}:`, e.message);
+        console.error(`Error en DELETE /rol/${req.params.id}:`, e.message);
         res.status(500).send(`Error: ${e.message}`); 
     }
 });
