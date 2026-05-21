@@ -20,6 +20,13 @@ export default class UsuarioRepository {
         } catch (error) { console.error(error); return null; }
     }
 
+    getByEmailAsync = async (email) => {
+        try {
+            const result = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
+            return result.rows[0] ?? null;
+        } catch (error) { console.error(error); return null; }
+    }
+
     createAsync = async (entity) => {
         try {
             const result = await pool.query(

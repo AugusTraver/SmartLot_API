@@ -7,6 +7,7 @@ class Usuario {
     email;
     telefono;
     contraseña;
+    id_empresa;
 }
 
 export default Usuario;

@@ -1,4 +1,4 @@
-import { TestRepository } from '../repository/testRepository.js';
+import { TestRepository } from '../repositories/testRepository.js';
 
 
 export class TestService {

@@ -31,4 +31,34 @@ export const isValidPassword = (password) => {
     return typeof password === 'string' && password.length >= 6;
 };
 
-// Puedes ir agregando más validaciones aquí según las necesites (ej. para patentes)
+/**
+ * Valida si una fecha es parseable y válida.
+ */
+export const isValidDate = (date) => {
+    if (!date) return false;
+    const parsed = new Date(date);
+    return !isNaN(parsed.getTime());
+};
+
+/**
+ * Valida si un teléfono es una cadena numérica de 7 a 15 dígitos.
+ */
+export const isValidPhone = (phone) => {
+    return /^\d{7,15}$/.test(phone);
+};
+
+/**
+ * Valida si una patente tiene formato argentino válido (ABC123 o AB123CD).
+ */
+export const isValidPatente = (patente) => {
+    if (!patente || typeof patente !== 'string') return false;
+    const upper = patente.toUpperCase();
+    return /^[A-Z]{3}\d{3}$/.test(upper) || /^[A-Z]{2}\d{3}[A-Z]{2}$/.test(upper);
+};
+
+/**
+ * Valida si un valor es un número positivo.
+ */
+export const isValidPositiveNumber = (n) => {
+    return typeof n === 'number' && n > 0;
+};

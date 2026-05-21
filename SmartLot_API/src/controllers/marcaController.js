@@ -1,6 +1,7 @@
 // marcaController.js
 import { Router } from 'express';
 import MarcaService from './../services/marcaService.js';
+import { isValidId, isValidString } from '../helpers/validatorHelper.js';
 
 const router = Router();
 const svc = new MarcaService();
@@ -34,29 +35,26 @@ router.get('/:id', async (req, res) => {
 // CREATE (POST)
 router.post('', async (req, res) => {
     try {
-        // Aquí no hay ID en la URL, pero si quisieras podrías validar que req.body no esté vacío
-        if (!req.body || Object.keys(req.body).length === 0) {
-             return res.status(400).send('El cuerpo de la petición (body) no puede estar vacío.');
-        }
+        const { nombre } = req.body;
+        if (!isValidString(nombre)) return res.status(400).send('El nombre es requerido.');
 
         const data = await svc.createAsync(req.body);
         data != null ? res.status(201).json(data) : res.status(500).send('Error interno al crear la marca.');
     } catch (e) { 
         console.error("Error en POST /marca:", e.message);
-        res.status(500).send(`Error: ${e.message}`); 
+        const status = e.statusCode || 500;
+        res.status(status).send(`Error: ${e.message}`); 
     }
 });
 
 // UPDATE (PUT)
 router.put('/:id', async (req, res) => {
     try {
-        const id = parseInt(req.params.id);
-        
-        if (isNaN(id)) {
-            return res.status(400).send('El ID proporcionado no es válido.');
-        }
+        if (!isValidId(req.params.id)) return res.status(400).send('El ID proporcionado no es válido.');
+        const { nombre } = req.body;
+        if (nombre !== undefined && !isValidString(nombre)) return res.status(400).send('El nombre no puede estar vacío.');
 
-        const data = await svc.updateAsync(id, req.body);
+        const data = await svc.updateAsync(parseInt(req.params.id, 10), req.body);
 
         if (data !== null) {
             res.status(200).json(data);
@@ -65,7 +63,8 @@ router.put('/:id', async (req, res) => {
         }
     } catch (e) {
         console.error(`Error en PUT /marca/${req.params.id}:`, e.message);
-        res.status(500).send(`Error de base de datos: ${e.message}`);
+        const status = e.statusCode || 500;
+        res.status(status).send(`Error: ${e.message}`);
     }
 });
 

@@ -1,7 +1,7 @@
 // usuarioController.js
 import { Router } from 'express';
 import UsuarioService from './../services/usuarioService.js';
-import { isValidId, isValidEmail, isValidString, isValidPassword } from '../helpers/validatorHelper.js';
+import { isValidId, isValidEmail, isValidString, isValidPassword, isValidPhone } from '../helpers/validatorHelper.js';
 
 const router = Router();
 const svc = new UsuarioService();
@@ -43,13 +43,17 @@ router.post('', async (req, res) => {
         if (!isValidString(apellido)) return res.status(400).send('El apellido es requerido.');
         if (!isValidEmail(email)) return res.status(400).send('El email no tiene un formato válido.');
         if (!isValidPassword(contraseña)) return res.status(400).send('La contraseña debe tener al menos 6 caracteres.');
-        // Puedes agregar más validaciones para id_rol, id_sede, etc. usando isValidId si son obligatorios
+        if (!isValidId(id_rol)) return res.status(400).send('El id_rol es requerido y debe ser un número válido.');
+        if (!isValidId(id_sede)) return res.status(400).send('El id_sede es requerido y debe ser un número válido.');
+        if (!isValidId(id_empresa)) return res.status(400).send('El id_empresa es requerido y debe ser un número válido.');
+        if (telefono && !isValidPhone(telefono)) return res.status(400).send('El teléfono debe contener solo dígitos (mínimo 7).');
 
         const data = await svc.createAsync(req.body);
         data != null ? res.status(201).json(data) : res.status(500).send('Error interno al crear el usuario.');
     } catch (e) { 
         console.error("Error en POST /usuario:", e.message);
-        res.status(500).send(`Error: ${e.message}`); 
+        const status = e.statusCode || 500;
+        res.status(status).send(`Error: ${e.message}`); 
     }
 });
 
@@ -64,7 +68,11 @@ router.put('/:id', async (req, res) => {
         }
 
         // 2. Validaciones básicas del body (igual que en el POST, o podrías flexibilizarlas si permites actualizaciones parciales)
-        const { email, contraseña } = req.body;
+        const { id_rol, id_sede, id_empresa, email, telefono, contraseña } = req.body;
+        if (id_rol && !isValidId(String(id_rol))) return res.status(400).send('El id_rol debe ser un número válido.');
+        if (id_sede && !isValidId(String(id_sede))) return res.status(400).send('El id_sede debe ser un número válido.');
+        if (id_empresa && !isValidId(String(id_empresa))) return res.status(400).send('El id_empresa debe ser un número válido.');
+        if (telefono && !isValidPhone(telefono)) return res.status(400).send('El teléfono debe contener solo dígitos (mínimo 7).');
         if (email && !isValidEmail(email)) return res.status(400).send('El email no tiene un formato válido.');
         if (contraseña && !isValidPassword(contraseña)) return res.status(400).send('La contraseña debe tener al menos 6 caracteres.');
 
@@ -77,7 +85,8 @@ router.put('/:id', async (req, res) => {
         }
     } catch (e) {
         console.error(`Error en PUT /usuario/${req.params.id}:`, e.message);
-        res.status(500).send(`Error de base de datos: ${e.message}`);
+        const status = e.statusCode || 500;
+        res.status(status).send(`Error: ${e.message}`);
     }
 });
 

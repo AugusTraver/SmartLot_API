@@ -77,7 +77,7 @@ updateAsync = async (id, entity) => {
         try {
             const result = await pool.query('SELECT ocupacion_reservas FROM garages WHERE id = $1', [id]);
             return result.rows;
-        } catch (error) { console.error(error); return NULL; }
+        } catch (error) { console.error(error); return null; }
     }
     getOcupacionNoReservaAsync = async (id) => {
         try {

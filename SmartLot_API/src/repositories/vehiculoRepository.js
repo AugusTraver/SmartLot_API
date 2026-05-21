@@ -20,6 +20,13 @@ export default class VehiculoRepository {
         } catch (error) { console.error(error); return null; }
     }
 
+    getByPatenteAsync = async (patente) => {
+        try {
+            const result = await pool.query('SELECT * FROM vehiculos WHERE patente = $1', [patente]);
+            return result.rows[0] ?? null;
+        } catch (error) { console.error(error); return null; }
+    }
+
     createAsync = async (entity) => {
         try {
             const result = await pool.query(

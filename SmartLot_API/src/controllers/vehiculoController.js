@@ -1,6 +1,7 @@
 // vehiculoController.js
 import { Router } from 'express';
 import VehiculoService from './../services/vehiculoService.js';
+import { isValidId, isValidPatente } from '../helpers/validatorHelper.js';
 
 const router = Router();
 const svc = new VehiculoService();
@@ -36,29 +37,30 @@ router.get('/:id', async (req, res) => {
 // CREATE (POST)
 router.post('', async (req, res) => {
     try {
-        // Aquí no hay ID en la URL, pero si quisieras podrías validar que req.body no esté vacío
-        if (!req.body || Object.keys(req.body).length === 0) {
-             return res.status(400).send('El cuerpo de la petición (body) no puede estar vacío.');
-        }
+        const { id_usuario, id_modelo, patente } = req.body;
+        if (!isValidId(String(id_usuario))) return res.status(400).send('El id_usuario es requerido y debe ser un número válido.');
+        if (!isValidId(String(id_modelo))) return res.status(400).send('El id_modelo es requerido y debe ser un número válido.');
+        if (!isValidPatente(patente)) return res.status(400).send('La patente es requerida y debe tener formato válido (ABC123 o AB123CD).');
 
         const data = await svc.createAsync(req.body);
         data != null ? res.status(201).json(data) : res.status(500).send('Error interno al crear el vehículo.');
     } catch (e) { 
         console.error("Error en POST /vehiculo:", e.message);
-        res.status(500).send(`Error: ${e.message}`); 
+        const status = e.statusCode || 500;
+        res.status(status).send(`Error: ${e.message}`); 
     }
 });
 
 // UPDATE (PUT)
 router.put('/:id', async (req, res) => {
     try {
-        const id = parseInt(req.params.id);
-        
-        if (isNaN(id)) {
-            return res.status(400).send('El ID proporcionado no es válido.');
-        }
+        if (!isValidId(req.params.id)) return res.status(400).send('El ID proporcionado no es válido.');
+        const { id_usuario, id_modelo, patente } = req.body;
+        if (id_usuario !== undefined && !isValidId(String(id_usuario))) return res.status(400).send('El id_usuario debe ser un número válido.');
+        if (id_modelo !== undefined && !isValidId(String(id_modelo))) return res.status(400).send('El id_modelo debe ser un número válido.');
+        if (patente !== undefined && !isValidPatente(patente)) return res.status(400).send('La patente debe tener formato válido (ABC123 o AB123CD).');
 
-        const data = await svc.updateAsync(id, req.body);
+        const data = await svc.updateAsync(parseInt(req.params.id, 10), req.body);
 
         if (data !== null) {
             res.status(200).json(data);
@@ -67,7 +69,8 @@ router.put('/:id', async (req, res) => {
         }
     } catch (e) {
         console.error(`Error en PUT /vehiculo/${req.params.id}:`, e.message);
-        res.status(500).send(`Error de base de datos: ${e.message}`);
+        const status = e.statusCode || 500;
+        res.status(status).send(`Error: ${e.message}`);
     }
 });
 

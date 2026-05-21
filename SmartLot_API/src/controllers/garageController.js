@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import GarageService from './../services/garageService.js';
+import { isValidId, isValidString, isValidPositiveNumber } from '../helpers/validatorHelper.js';
 
 const router = Router();
 const svc = new GarageService();
@@ -66,29 +67,32 @@ router.get('/:id', async (req, res) => {
 // CREATE (POST)
 router.post('', async (req, res) => {
     try {
-        // Aquí no hay ID en la URL, pero si quisieras podrías validar que req.body no esté vacío
-        if (!req.body || Object.keys(req.body).length === 0) {
-             return res.status(400).send('El cuerpo de la petición (body) no puede estar vacío.');
-        }
+        const { id_sede, nombre, capacidad, estado } = req.body;
+        if (!isValidString(nombre)) return res.status(400).send('El nombre es requerido.');
+        if (!isValidId(String(id_sede))) return res.status(400).send('El id_sede es requerido y debe ser un número válido.');
+        if (!isValidPositiveNumber(capacidad)) return res.status(400).send('La capacidad debe ser un número positivo.');
+        if (estado && !['activo', 'inactivo'].includes(estado)) return res.status(400).send('El estado debe ser "activo" o "inactivo".');
 
         const data = await svc.createAsync(req.body);
         data != null ? res.status(201).json(data) : res.status(500).send('Error interno al crear el garage.');
     } catch (e) { 
         console.error("Error en POST /garage:", e.message);
-        res.status(500).send(`Error: ${e.message}`); 
+        const status = e.statusCode || 500;
+        res.status(status).send(`Error: ${e.message}`); 
     }
 });
 
 // UPDATE (PUT)
 router.put('/:id', async (req, res) => {
     try {
-        const id = parseInt(req.params.id);
-        
-        if (isNaN(id)) {
-            return res.status(400).send('El ID proporcionado no es válido.');
-        }
+        if (!isValidId(req.params.id)) return res.status(400).send('El ID proporcionado no es válido.');
+        const { id_sede, nombre, capacidad, estado } = req.body;
+        if (nombre !== undefined && !isValidString(nombre)) return res.status(400).send('El nombre no puede estar vacío.');
+        if (id_sede !== undefined && !isValidId(String(id_sede))) return res.status(400).send('El id_sede debe ser un número válido.');
+        if (capacidad !== undefined && !isValidPositiveNumber(capacidad)) return res.status(400).send('La capacidad debe ser un número positivo.');
+        if (estado !== undefined && !['activo', 'inactivo'].includes(estado)) return res.status(400).send('El estado debe ser "activo" o "inactivo".');
 
-        const data = await svc.updateAsync(id, req.body);
+        const data = await svc.updateAsync(parseInt(req.params.id, 10), req.body);
 
         if (data !== null) {
             res.status(200).json(data);
@@ -97,7 +101,8 @@ router.put('/:id', async (req, res) => {
         }
     } catch (e) {
         console.error(`Error en PUT /garage/${req.params.id}:`, e.message);
-        res.status(500).send(`Error de base de datos: ${e.message}`);
+        const status = e.statusCode || 500;
+        res.status(status).send(`Error: ${e.message}`);
     }
 });
 
