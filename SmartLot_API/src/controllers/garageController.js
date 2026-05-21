@@ -71,7 +71,7 @@ router.post('', async (req, res) => {
         if (!isValidString(nombre)) return res.status(400).send('El nombre es requerido.');
         if (!isValidId(String(id_sede))) return res.status(400).send('El id_sede es requerido y debe ser un número válido.');
         if (!isValidPositiveNumber(capacidad)) return res.status(400).send('La capacidad debe ser un número positivo.');
-        if (estado && !['activo', 'inactivo'].includes(estado)) return res.status(400).send('El estado debe ser "activo" o "inactivo".');
+        if (estado !== undefined && typeof estado !== 'boolean') return res.status(400).send('El estado debe ser un valor booleano (true o false).');
 
         const data = await svc.createAsync(req.body);
         data != null ? res.status(201).json(data) : res.status(500).send('Error interno al crear el garage.');
@@ -90,7 +90,7 @@ router.put('/:id', async (req, res) => {
         if (nombre !== undefined && !isValidString(nombre)) return res.status(400).send('El nombre no puede estar vacío.');
         if (id_sede !== undefined && !isValidId(String(id_sede))) return res.status(400).send('El id_sede debe ser un número válido.');
         if (capacidad !== undefined && !isValidPositiveNumber(capacidad)) return res.status(400).send('La capacidad debe ser un número positivo.');
-        if (estado !== undefined && !['activo', 'inactivo'].includes(estado)) return res.status(400).send('El estado debe ser "activo" o "inactivo".');
+        if (estado !== undefined && typeof estado !== 'boolean') return res.status(400).send('El estado debe ser un valor booleano (true o false).');
 
         const data = await svc.updateAsync(parseInt(req.params.id, 10), req.body);
 
