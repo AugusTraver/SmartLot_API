@@ -10,7 +10,20 @@ export default class ModeloService {
     }
 
     getAllAsync = async () => await this.repo.getAllAsync();
+    
     getByIdAsync = async (id) => await this.repo.getByIdAsync(id);
+
+    createAsync = async (entity) => {
+        await this._validarRelacionesAsync(entity);
+        return await this.repo.createAsync(entity);
+    }
+
+    updateAsync = async (id, entity) => {
+        await this._validarRelacionesAsync(entity);
+        return await this.repo.updateAsync(id, entity);
+    }
+
+    deleteAsync = async (id) => await this.repo.deleteAsync(id);
 
     /**
      * Valida que las entidades relacionadas (marca) existan en la BD.
@@ -26,16 +39,4 @@ export default class ModeloService {
             }
         }
     }
-
-    createAsync = async (entity) => {
-        await this._validarRelacionesAsync(entity);
-        return await this.repo.createAsync(entity);
-    }
-
-    updateAsync = async (id, entity) => {
-        await this._validarRelacionesAsync(entity);
-        return await this.repo.updateAsync(id, entity);
-    }
-
-    deleteAsync = async (id) => await this.repo.deleteAsync(id);
 }

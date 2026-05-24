@@ -10,41 +10,12 @@ export default class GarageService {
     }
 
     getAllAsync = async () => await this.repo.getAllAsync();
+    
     getByIdAsync = async (id) => await this.repo.getByIdAsync(id);
 
-    /**
-     * Valida que las entidades relacionadas (sede) existan en la BD
-     * y que las reglas de capacidad se cumplan.
-     * Lanza un error descriptivo si alguna validación falla.
-     */
-    _validarRelacionesAsync = async (entity) => {
-        // Validar que la sede exista
-        if (entity.id_sede) {
-            const sede = await this.sedeRepo.getByIdAsync(entity.id_sede);
-            if (!sede) {
-                const error = new Error(`La sede con ID ${entity.id_sede} no existe.`);
-                error.statusCode = 400;
-                throw error;
-            }
-        }
+    getOcupacionReservaAsync = async (id) => await this.repo.getOcupacionReservaAsync(id);
 
-        // Validar reglas de capacidad
-        if (entity.capacidad && entity.capacidad_reservas) {
-            if (entity.capacidad_reservas > entity.capacidad) {
-                const error = new Error('La capacidad de reservas no puede superar la capacidad total.');
-                error.statusCode = 400;
-                throw error;
-            }
-        }
-
-        if (entity.capacidad && entity.capacidad_para_no_reservas) {
-            if (entity.capacidad_para_no_reservas > entity.capacidad) {
-                const error = new Error('La capacidad para no reservas no puede superar la capacidad total.');
-                error.statusCode = 400;
-                throw error;
-            }
-        }
-    }
+    getOcupacionNoReservaAsync = async (id) => await this.repo.getOcupacionNoReservaAsync(id);
 
     createAsync = async (entity) => {
         await this._validarRelacionesAsync(entity);
@@ -57,8 +28,6 @@ export default class GarageService {
     }
 
     deleteAsync = async (id) => await this.repo.deleteAsync(id);
-    getOcupacionReservaAsync = async (id) => await this.repo.getOcupacionReservaAsync(id);
-    getOcupacionNoReservaAsync = async (id) => await this.repo.getOcupacionNoReservaAsync(id);
 
     registrarIngresoNoReservaAsync = async (id) => {
         const garage = await this.repo.getByIdAsync(id);
@@ -99,5 +68,39 @@ export default class GarageService {
             throw error;
         }
         return await this.repo.decrementOcupacionNoReservasAsync(id);
+    }
+
+    /**
+     * Valida que las entidades relacionadas (sede) existan en la BD
+     * y que las reglas de capacidad se cumplan.
+     * Lanza un error descriptivo si alguna validación falla.
+     */
+    _validarRelacionesAsync = async (entity) => {
+        // Validar que la sede exista
+        if (entity.id_sede) {
+            const sede = await this.sedeRepo.getByIdAsync(entity.id_sede);
+            if (!sede) {
+                const error = new Error(`La sede con ID ${entity.id_sede} no existe.`);
+                error.statusCode = 400;
+                throw error;
+            }
+        }
+
+        // Validar reglas de capacidad
+        if (entity.capacidad && entity.capacidad_reservas) {
+            if (entity.capacidad_reservas > entity.capacidad) {
+                const error = new Error('La capacidad de reservas no puede superar la capacidad total.');
+                error.statusCode = 400;
+                throw error;
+            }
+        }
+
+        if (entity.capacidad && entity.capacidad_para_no_reservas) {
+            if (entity.capacidad_para_no_reservas > entity.capacidad) {
+                const error = new Error('La capacidad para no reservas no puede superar la capacidad total.');
+                error.statusCode = 400;
+                throw error;
+            }
+        }
     }
 }

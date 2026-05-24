@@ -12,37 +12,8 @@ export default class VehiculoService {
     }
 
     getAllAsync = async () => await this.repo.getAllAsync();
+    
     getByIdAsync = async (id) => await this.repo.getByIdAsync(id);
-
-    /**
-     * Valida que las entidades relacionadas (usuario, modelo) existan en la BD.
-     * Recopila todos los errores y los lanza juntos.
-     */
-    _validarRelacionesAsync = async (entity) => {
-        const errores = [];
-
-        // Validar que el usuario exista
-        if (entity.id_usuario) {
-            const usuario = await this.usuarioRepo.getByIdAsync(entity.id_usuario);
-            if (!usuario) {
-                errores.push(`El usuario con ID ${entity.id_usuario} no existe.`);
-            }
-        }
-
-        // Validar que el modelo exista
-        if (entity.id_modelo) {
-            const modelo = await this.modeloRepo.getByIdAsync(entity.id_modelo);
-            if (!modelo) {
-                errores.push(`El modelo con ID ${entity.id_modelo} no existe.`);
-            }
-        }
-
-        if (errores.length > 0) {
-            const error = new Error(errores.join(' '));
-            error.statusCode = 400;
-            throw error;
-        }
-    }
 
     createAsync = async (entity) => {
         await this._validarRelacionesAsync(entity);
@@ -77,4 +48,34 @@ export default class VehiculoService {
     }
 
     deleteAsync = async (id) => await this.repo.deleteAsync(id);
+
+    /**
+     * Valida que las entidades relacionadas (usuario, modelo) existan en la BD.
+     * Recopila todos los errores y los lanza juntos.
+     */
+    _validarRelacionesAsync = async (entity) => {
+        const errores = [];
+
+        // Validar que el usuario exista
+        if (entity.id_usuario) {
+            const usuario = await this.usuarioRepo.getByIdAsync(entity.id_usuario);
+            if (!usuario) {
+                errores.push(`El usuario con ID ${entity.id_usuario} no existe.`);
+            }
+        }
+
+        // Validar que el modelo exista
+        if (entity.id_modelo) {
+            const modelo = await this.modeloRepo.getByIdAsync(entity.id_modelo);
+            if (!modelo) {
+                errores.push(`El modelo con ID ${entity.id_modelo} no existe.`);
+            }
+        }
+
+        if (errores.length > 0) {
+            const error = new Error(errores.join(' '));
+            error.statusCode = 400;
+            throw error;
+        }
+    }
 }

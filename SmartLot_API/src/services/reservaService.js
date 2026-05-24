@@ -14,7 +14,94 @@ export default class ReservaService {
     }
 
     getAllAsync = async () => await this.repo.getAllAsync();
+
     getByIdAsync = async (id) => await this.repo.getByIdAsync(id);
+
+    createAsync = async (entity) => {
+        await this._validarRelacionesAsync(entity);
+        this._validarFechasAsync(entity);
+        await this._validarDisponibilidadAsync(entity);
+        return await this.repo.createAsync(entity);
+    }
+
+    updateAsync = async (id, entity) => {
+        const current = await this.repo.getByIdAsync(id);
+        if (!current) return null;
+
+        const mergedEntity = { ...current, ...entity };
+
+        await this._validarRelacionesAsync(mergedEntity);
+        this._validarFechasAsync(mergedEntity);
+        await this._validarDisponibilidadAsync(mergedEntity, id);
+
+        return await this.repo.updateAsync(id, mergedEntity);
+    }
+
+    deleteAsync = async (id) => await this.repo.deleteAsync(id);
+
+    checkInAsync = async (id) => {
+        const reserva = await this.repo.getByIdAsync(id);
+        if (!reserva) {
+            const error = new Error(`La reserva con ID ${id} no existe.`);
+            error.statusCode = 404;
+            throw error;
+        }
+
+        if (reserva.entro) {
+            const error = new Error(`La reserva con ID ${id} ya registró su ingreso.`);
+            error.statusCode = 400;
+            throw error;
+        }
+
+        if (reserva.salio) {
+            const error = new Error(`La reserva con ID ${id} ya registró su salida.`);
+            error.statusCode = 400;
+            throw error;
+        }
+
+        // Marcar ingreso
+        reserva.entro = new Date();
+        const updatedReserva = await this.repo.updateAsync(id, reserva);
+
+        // Incrementar ocupación en el garage
+        if (updatedReserva) {
+            await this.garageRepo.incrementOcupacionReservasAsync(reserva.id_garage);
+        }
+
+        return updatedReserva;
+    }
+
+    checkOutAsync = async (id) => {
+        const reserva = await this.repo.getByIdAsync(id);
+        if (!reserva) {
+            const error = new Error(`La reserva con ID ${id} no existe.`);
+            error.statusCode = 404;
+            throw error;
+        }
+
+        if (!reserva.entro) {
+            const error = new Error(`La reserva con ID ${id} no puede registrar salida sin haber registrado su ingreso.`);
+            error.statusCode = 400;
+            throw error;
+        }
+
+        if (reserva.salio) {
+            const error = new Error(`La reserva con ID ${id} ya registró su salida.`);
+            error.statusCode = 400;
+            throw error;
+        }
+
+        // Marcar salida
+        reserva.salio = new Date();
+        const updatedReserva = await this.repo.updateAsync(id, reserva);
+
+        // Decrementar ocupación en el garage
+        if (updatedReserva) {
+            await this.garageRepo.decrementOcupacionReservasAsync(reserva.id_garage);
+        }
+
+        return updatedReserva;
+    }
 
     /**
      * Valida que las entidades relacionadas (usuario, garage, vehiculo) existan en la BD.
@@ -153,91 +240,5 @@ export default class ReservaService {
                 }
             }
         }
-    }
-
-    createAsync = async (entity) => {
-        await this._validarRelacionesAsync(entity);
-        this._validarFechasAsync(entity);
-        await this._validarDisponibilidadAsync(entity);
-        return await this.repo.createAsync(entity);
-    }
-
-    updateAsync = async (id, entity) => {
-        const current = await this.repo.getByIdAsync(id);
-        if (!current) return null;
-
-        const mergedEntity = { ...current, ...entity };
-
-        await this._validarRelacionesAsync(mergedEntity);
-        this._validarFechasAsync(mergedEntity);
-        await this._validarDisponibilidadAsync(mergedEntity, id);
-
-        return await this.repo.updateAsync(id, mergedEntity);
-    }
-
-    deleteAsync = async (id) => await this.repo.deleteAsync(id);
-
-    checkInAsync = async (id) => {
-        const reserva = await this.repo.getByIdAsync(id);
-        if (!reserva) {
-            const error = new Error(`La reserva con ID ${id} no existe.`);
-            error.statusCode = 404;
-            throw error;
-        }
-
-        if (reserva.entro) {
-            const error = new Error(`La reserva con ID ${id} ya registró su ingreso.`);
-            error.statusCode = 400;
-            throw error;
-        }
-
-        if (reserva.salio) {
-            const error = new Error(`La reserva con ID ${id} ya registró su salida.`);
-            error.statusCode = 400;
-            throw error;
-        }
-
-        // Marcar ingreso
-        reserva.entro = new Date();
-        const updatedReserva = await this.repo.updateAsync(id, reserva);
-
-        // Incrementar ocupación en el garage
-        if (updatedReserva) {
-            await this.garageRepo.incrementOcupacionReservasAsync(reserva.id_garage);
-        }
-
-        return updatedReserva;
-    }
-
-    checkOutAsync = async (id) => {
-        const reserva = await this.repo.getByIdAsync(id);
-        if (!reserva) {
-            const error = new Error(`La reserva con ID ${id} no existe.`);
-            error.statusCode = 404;
-            throw error;
-        }
-
-        if (!reserva.entro) {
-            const error = new Error(`La reserva con ID ${id} no puede registrar salida sin haber registrado su ingreso.`);
-            error.statusCode = 400;
-            throw error;
-        }
-
-        if (reserva.salio) {
-            const error = new Error(`La reserva con ID ${id} ya registró su salida.`);
-            error.statusCode = 400;
-            throw error;
-        }
-
-        // Marcar salida
-        reserva.salio = new Date();
-        const updatedReserva = await this.repo.updateAsync(id, reserva);
-
-        // Decrementar ocupación en el garage
-        if (updatedReserva) {
-            await this.garageRepo.decrementOcupacionReservasAsync(reserva.id_garage);
-        }
-
-        return updatedReserva;
     }
 }

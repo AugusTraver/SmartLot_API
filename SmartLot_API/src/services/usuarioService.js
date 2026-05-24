@@ -19,44 +19,18 @@ export default class UsuarioService {
     }
 
     getAllAsync = async () => await this.repo.getAllAsync();
+
     getByIdAsync = async (id) => await this.repo.getByIdAsync(id);
 
-    /**
-     * Valida que las entidades relacionadas (rol, sede, empresa) existan en la BD.
-     * Lanza un error descriptivo si alguna no existe.
-     */
-    _validarRelacionesAsync = async (entity) => {
-        const errores = [];
-
-        // Validar que el rol exista
-        if (entity.id_rol) {
-            const rol = await this.rolRepo.getByIdAsync(entity.id_rol);
-            if (!rol) {
-                errores.push(`El rol con ID ${entity.id_rol} no existe.`);
-            }
-        }
-
-        // Validar que la empresa exista
-        if (entity.id_empresa) {
-            const empresa = await this.empresaRepo.getByIdAsync(entity.id_empresa);
-            if (!empresa) {
-                errores.push(`La empresa con ID ${entity.id_empresa} no existe.`);
-            }
-        }
-
-        // Validar que la sede exista
-        if (entity.id_sede) {
-            const sede = await this.sedeRepo.getByIdAsync(entity.id_sede);
-            if (!sede) {
-                errores.push(`La sede con ID ${entity.id_sede} no existe.`);
-            }
-        }
-
-        if (errores.length > 0) {
-            const error = new Error(errores.join(' '));
-            error.statusCode = 400;
+    getGaragistasByGarageIdAsync = async (id_garage) => {
+        // Validar que el garage exista
+        const garage = await this.garageRepo.getByIdAsync(id_garage);
+        if (!garage) {
+            const error = new Error(`El garage con ID ${id_garage} no existe.`);
+            error.statusCode = 404;
             throw error;
         }
+        return await this.usuarioGarageRepo.getUsuariosByGarageIdAsync(id_garage);
     }
 
     createAsync = async (entity) => {
@@ -96,6 +70,7 @@ export default class UsuarioService {
             try {
                 await client.query('BEGIN');
 
+                // Crear usuario con el cliente de la transacción
                 const nuevoUsuario = await this.repo.createWithClientAsync(entity, client);
                 if (!nuevoUsuario) {
                     throw new Error('Error al insertar el usuario en la base de datos.');
@@ -135,14 +110,41 @@ export default class UsuarioService {
 
     deleteAsync = async (id) => await this.repo.deleteAsync(id);
 
-    getGaragistasByGarageIdAsync = async (id_garage) => {
-        // Validar que el garage exista
-        const garage = await this.garageRepo.getByIdAsync(id_garage);
-        if (!garage) {
-            const error = new Error(`El garage con ID ${id_garage} no existe.`);
-            error.statusCode = 404;
+    /**
+     * Valida que las entidades relacionadas (rol, sede, empresa) existan en la BD.
+     * Lanza un error descriptivo si alguna no existe.
+     */
+    _validarRelacionesAsync = async (entity) => {
+        const errores = [];
+
+        // Validar que el rol exista
+        if (entity.id_rol) {
+            const rol = await this.rolRepo.getByIdAsync(entity.id_rol);
+            if (!rol) {
+                errores.push(`El rol con ID ${entity.id_rol} no existe.`);
+            }
+        }
+
+        // Validar que la empresa exista
+        if (entity.id_empresa) {
+            const empresa = await this.empresaRepo.getByIdAsync(entity.id_empresa);
+            if (!empresa) {
+                errores.push(`La empresa con ID ${entity.id_empresa} no existe.`);
+            }
+        }
+
+        // Validar que la sede exista
+        if (entity.id_sede) {
+            const sede = await this.sedeRepo.getByIdAsync(entity.id_sede);
+            if (!sede) {
+                errores.push(`La sede con ID ${entity.id_sede} no existe.`);
+            }
+        }
+
+        if (errores.length > 0) {
+            const error = new Error(errores.join(' '));
+            error.statusCode = 400;
             throw error;
         }
-        return await this.usuarioGarageRepo.getUsuariosByGarageIdAsync(id_garage);
     }
 }
