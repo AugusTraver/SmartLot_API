@@ -38,6 +38,7 @@ router.get('/:id', async (req, res) => {
 router.post('', async (req, res) => {
     try {
         const { id_usuario, id_modelo, patente } = req.body;
+        console.log("POST /vehiculo - Payload recibido:", req.body);
         if (!isValidId(String(id_usuario))) return res.status(400).send('El id_usuario es requerido y debe ser un número válido.');
         if (!isValidId(String(id_modelo))) return res.status(400).send('El id_modelo es requerido y debe ser un número válido.');
         if (!isValidPatente(patente)) return res.status(400).send('La patente es requerida y debe tener formato válido (ABC123 o AB123CD).');

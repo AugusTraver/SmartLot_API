@@ -95,4 +95,38 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+// POST CHECK-IN
+router.post('/:id/check-in', async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        if (isNaN(id)) {
+            return res.status(400).send('El ID proporcionado no es válido.');
+        }
+
+        const data = await svc.checkInAsync(id);
+        data != null ? res.status(200).json(data) : res.status(404).send('No encontrado.');
+    } catch (e) {
+        console.error(`Error en POST /reserva/${req.params.id}/check-in:`, e.message);
+        const status = e.statusCode || 500;
+        res.status(status).send(`Error: ${e.message}`);
+    }
+});
+
+// POST CHECK-OUT
+router.post('/:id/check-out', async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        if (isNaN(id)) {
+            return res.status(400).send('El ID proporcionado no es válido.');
+        }
+
+        const data = await svc.checkOutAsync(id);
+        data != null ? res.status(200).json(data) : res.status(404).send('No encontrado.');
+    } catch (e) {
+        console.error(`Error en POST /reserva/${req.params.id}/check-out:`, e.message);
+        const status = e.statusCode || 500;
+        res.status(status).send(`Error: ${e.message}`);
+    }
+});
+
 export default router;

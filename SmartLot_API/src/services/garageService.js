@@ -47,6 +47,7 @@ export default class GarageService {
     }
 
     createAsync = async (entity) => {
+        await this._validarRelacionesAsync(entity);
         return await this.repo.createAsync(entity);
     }
 
@@ -58,4 +59,45 @@ export default class GarageService {
     deleteAsync = async (id) => await this.repo.deleteAsync(id);
     getOcupacionReservaAsync = async (id) => await this.repo.getOcupacionReservaAsync(id);
     getOcupacionNoReservaAsync = async (id) => await this.repo.getOcupacionNoReservaAsync(id);
+
+    registrarIngresoNoReservaAsync = async (id) => {
+        const garage = await this.repo.getByIdAsync(id);
+        if (!garage) {
+            const error = new Error(`El garage con ID ${id} no existe.`);
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const totalCap = garage.capacidad || 0;
+        const capNoRes = garage.capacidad_para_no_reservas !== null && garage.capacidad_para_no_reservas !== undefined 
+            ? garage.capacidad_para_no_reservas 
+            : totalCap;
+            
+        const currentNoRes = garage.ocupacion_no_reservas || 0;
+        const currentRes = garage.ocupacion_reservas || 0;
+
+        if (currentNoRes >= capNoRes) {
+            const error = new Error(`Se superó la capacidad máxima para vehículos sin reserva (${capNoRes}).`);
+            error.statusCode = 400;
+            throw error;
+        }
+
+        if (currentNoRes + currentRes >= totalCap) {
+            const error = new Error(`El garage con ID ${id} está completamente lleno (capacidad total: ${totalCap}).`);
+            error.statusCode = 400;
+            throw error;
+        }
+
+        return await this.repo.incrementOcupacionNoReservasAsync(id);
+    }
+
+    registrarEgresoNoReservaAsync = async (id) => {
+        const garage = await this.repo.getByIdAsync(id);
+        if (!garage) {
+            const error = new Error(`El garage con ID ${id} no existe.`);
+            error.statusCode = 404;
+            throw error;
+        }
+        return await this.repo.decrementOcupacionNoReservasAsync(id);
+    }
 }

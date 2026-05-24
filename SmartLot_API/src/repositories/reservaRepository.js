@@ -50,4 +50,30 @@ export default class ReservaRepository {
             return result.rowCount > 0;
         } catch (error) { console.error(error); return false; }
     }
+
+    getOverlapByVehiculoAsync = async (id_vehiculo, fecha_entrada, fecha_salida, excludeId = null) => {
+        try {
+            const result = await pool.query(
+                `SELECT * FROM reservas 
+                 WHERE id_vehiculo = $1 
+                   AND (fecha_entrada < $2 AND fecha_salida > $3)
+                   AND ($4::integer IS NULL OR id != $4)`,
+                [id_vehiculo, fecha_salida, fecha_entrada, excludeId]
+            );
+            return result.rows;
+        } catch (error) { console.error(error); return null; }
+    }
+
+    getOverlapByGarageAsync = async (id_garage, fecha_entrada, fecha_salida, excludeId = null) => {
+        try {
+            const result = await pool.query(
+                `SELECT * FROM reservas 
+                 WHERE id_garage = $1 
+                   AND (fecha_entrada < $2 AND fecha_salida > $3)
+                   AND ($4::integer IS NULL OR id != $4)`,
+                [id_garage, fecha_salida, fecha_entrada, excludeId]
+            );
+            return result.rows;
+        } catch (error) { console.error(error); return null; }
+    }
 }

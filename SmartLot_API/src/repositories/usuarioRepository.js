@@ -39,6 +39,18 @@ export default class UsuarioRepository {
         } catch (error) { console.error(error); return null; }
     }
 
+    createWithClientAsync = async (entity, client) => {
+        // En una transacción, no hacemos try/catch interno para que los errores
+        // se propaguen y provoquen el ROLLBACK en la transacción.
+        const result = await client.query(
+            `INSERT INTO usuarios (id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+            [entity.id_rol, entity.nombre, entity.apellido, entity.id_sede,
+             entity.email, entity.telefono, entity.contraseña, entity.id_empresa]
+        );
+        return result.rows[0];
+    }
+
     updateAsync = async (id, entity) => {
         try {
             const result = await pool.query(

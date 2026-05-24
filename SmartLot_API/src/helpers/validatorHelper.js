@@ -4,8 +4,9 @@
  * Valida si un ID es estrictamente numérico y mayor a 0.
  */
 export const isValidId = (id) => {
+    if (id === null || id === undefined) return false;
     // La expresión regular ^[1-9]\d*$ asegura que sea un número entero positivo (sin decimales ni letras)
-    return /^[1-9]\d*$/.test(id);
+    return /^[1-9]\d*$/.test(String(id));
 };
 
 /**

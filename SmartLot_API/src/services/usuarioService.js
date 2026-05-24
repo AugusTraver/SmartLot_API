@@ -1,8 +1,11 @@
 // usuarioService.js
+import pool from '../database/db.js';
 import UsuarioRepository from '../repositories/usuarioRepository.js';
 import SedeRepository from '../repositories/sedeRepository.js';
 import EmpresaRepository from '../repositories/empresaRepository.js';
 import RolRepository from '../repositories/rolRepository.js';
+import GarageRepository from '../repositories/garageRepository.js';
+import UsuarioGarageRepository from '../repositories/usuarioGarageRepository.js';
 
 export default class UsuarioService {
     constructor() {
@@ -11,6 +14,8 @@ export default class UsuarioService {
         this.sedeRepo = new SedeRepository();
         this.empresaRepo = new EmpresaRepository();
         this.rolRepo = new RolRepository();
+        this.garageRepo = new GarageRepository();
+        this.usuarioGarageRepo = new UsuarioGarageRepository();
     }
 
     getAllAsync = async () => await this.repo.getAllAsync();
@@ -57,6 +62,25 @@ export default class UsuarioService {
     createAsync = async (entity) => {
         await this._validarRelacionesAsync(entity);
 
+        // Obtener el rol para verificar si es "garagista"
+        const rol = await this.rolRepo.getByIdAsync(entity.id_rol);
+        const esGaragista = rol && rol.tipo_rol && rol.tipo_rol.toLowerCase() === 'garagista';
+
+        // Validaciones si es "garagista"
+        if (esGaragista) {
+            if (!entity.id_garage) {
+                const error = new Error('El campo id_garage es requerido para el rol garagista.');
+                error.statusCode = 400;
+                throw error;
+            }
+            const garage = await this.garageRepo.getByIdAsync(entity.id_garage);
+            if (!garage) {
+                const error = new Error(`El garage con ID ${entity.id_garage} no existe.`);
+                error.statusCode = 400;
+                throw error;
+            }
+        }
+
         // Validar email único
         if (entity.email) {
             const existing = await this.repo.getByEmailAsync(entity.email);
@@ -67,7 +91,30 @@ export default class UsuarioService {
             }
         }
 
-        return await this.repo.createAsync(entity);
+        if (esGaragista) {
+            const client = await pool.connect();
+            try {
+                await client.query('BEGIN');
+
+                const nuevoUsuario = await this.repo.createWithClientAsync(entity, client);
+                if (!nuevoUsuario) {
+                    throw new Error('Error al insertar el usuario en la base de datos.');
+                }
+
+                // Crear relación usuario_garage con el cliente de la transacción
+                await this.usuarioGarageRepo.createWithClientAsync(nuevoUsuario.id, entity.id_garage, client);
+
+                await client.query('COMMIT');
+                return nuevoUsuario;
+            } catch (error) {
+                await client.query('ROLLBACK');
+                throw error;
+            } finally {
+                client.release();
+            }
+        } else {
+            return await this.repo.createAsync(entity);
+        }
     }
 
     updateAsync = async (id, entity) => {

@@ -36,7 +36,7 @@ router.get('/:id', async (req, res) => {
 // CREATE (POST)
 router.post('', async (req, res) => {
     try {
-        const { id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa } = req.body;
+        const { id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa, id_garage } = req.body;
 
         // 1. Validaciones básicas de los datos de entrada
         if (!isValidString(nombre)) return res.status(400).send('El nombre es requerido.');
@@ -47,6 +47,7 @@ router.post('', async (req, res) => {
         if (!isValidId(id_sede)) return res.status(400).send('El id_sede es requerido y debe ser un número válido.');
         if (!isValidId(id_empresa)) return res.status(400).send('El id_empresa es requerido y debe ser un número válido.');
         if (telefono && !isValidPhone(telefono)) return res.status(400).send('El teléfono debe contener solo dígitos (mínimo 7).');
+        if (id_garage !== undefined && !isValidId(id_garage)) return res.status(400).send('El id_garage debe ser un número válido.');
 
         const data = await svc.createAsync(req.body);
         data != null ? res.status(201).json(data) : res.status(500).send('Error interno al crear el usuario.');

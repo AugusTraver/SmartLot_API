@@ -123,4 +123,38 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+// POST INGRESO VEHICULO SIN RESERVA
+router.post('/:id/ingreso-no-reserva', async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        if (isNaN(id)) {
+            return res.status(400).send('El ID proporcionado no es válido.');
+        }
+
+        const data = await svc.registrarIngresoNoReservaAsync(id);
+        data != null ? res.status(200).json(data) : res.status(404).send('No encontrado.');
+    } catch (e) {
+        console.error(`Error en POST /garage/${req.params.id}/ingreso-no-reserva:`, e.message);
+        const status = e.statusCode || 500;
+        res.status(status).send(`Error: ${e.message}`);
+    }
+});
+
+// POST EGRESO VEHICULO SIN RESERVA
+router.post('/:id/egreso-no-reserva', async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        if (isNaN(id)) {
+            return res.status(400).send('El ID proporcionado no es válido.');
+        }
+
+        const data = await svc.registrarEgresoNoReservaAsync(id);
+        data != null ? res.status(200).json(data) : res.status(404).send('No encontrado.');
+    } catch (e) {
+        console.error(`Error en POST /garage/${req.params.id}/egreso-no-reserva:`, e.message);
+        const status = e.statusCode || 500;
+        res.status(status).send(`Error: ${e.message}`);
+    }
+});
+
 export default router;

@@ -85,4 +85,44 @@ updateAsync = async (id, entity) => {
             return result.rows;
         } catch (error) { console.error(error); return null; }
     }
+
+    incrementOcupacionReservasAsync = async (id) => {
+        try {
+            const result = await pool.query(
+                'UPDATE garages SET ocupacion_reservas = COALESCE(ocupacion_reservas, 0) + 1 WHERE id = $1 RETURNING *',
+                [id]
+            );
+            return result.rows[0] ?? null;
+        } catch (error) { console.error(error); return null; }
+    }
+
+    decrementOcupacionReservasAsync = async (id) => {
+        try {
+            const result = await pool.query(
+                'UPDATE garages SET ocupacion_reservas = GREATEST(0, COALESCE(ocupacion_reservas, 0) - 1) WHERE id = $1 RETURNING *',
+                [id]
+            );
+            return result.rows[0] ?? null;
+        } catch (error) { console.error(error); return null; }
+    }
+
+    incrementOcupacionNoReservasAsync = async (id) => {
+        try {
+            const result = await pool.query(
+                'UPDATE garages SET ocupacion_no_reservas = COALESCE(ocupacion_no_reservas, 0) + 1 WHERE id = $1 RETURNING *',
+                [id]
+            );
+            return result.rows[0] ?? null;
+        } catch (error) { console.error(error); return null; }
+    }
+
+    decrementOcupacionNoReservasAsync = async (id) => {
+        try {
+            const result = await pool.query(
+                'UPDATE garages SET ocupacion_no_reservas = GREATEST(0, COALESCE(ocupacion_no_reservas, 0) - 1) WHERE id = $1 RETURNING *',
+                [id]
+            );
+            return result.rows[0] ?? null;
+        } catch (error) { console.error(error); return null; }
+    }
 }
