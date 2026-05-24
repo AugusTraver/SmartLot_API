@@ -134,4 +134,15 @@ export default class UsuarioService {
     }
 
     deleteAsync = async (id) => await this.repo.deleteAsync(id);
+
+    getGaragistasByGarageIdAsync = async (id_garage) => {
+        // Validar que el garage exista
+        const garage = await this.garageRepo.getByIdAsync(id_garage);
+        if (!garage) {
+            const error = new Error(`El garage con ID ${id_garage} no existe.`);
+            error.statusCode = 404;
+            throw error;
+        }
+        return await this.usuarioGarageRepo.getUsuariosByGarageIdAsync(id_garage);
+    }
 }

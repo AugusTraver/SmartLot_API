@@ -17,6 +17,23 @@ router.get('', async (req, res) => {
     }
 });
 
+// GET BY GARAGE ID
+router.get('/garage/:id_garage', async (req, res) => {
+    try {
+        const idGarage = parseInt(req.params.id_garage);
+        if (isNaN(idGarage)) {
+            return res.status(400).send('El ID de garage proporcionado no es válido.');
+        }
+
+        const data = await svc.getGaragistasByGarageIdAsync(idGarage);
+        data != null ? res.status(200).json(data) : res.status(404).send('No encontrado.');
+    } catch (e) {
+        console.error(`Error en GET /usuario/garage/${req.params.id_garage}:`, e.message);
+        const status = e.statusCode || 500;
+        res.status(status).send(`Error: ${e.message}`);
+    }
+});
+
 // GET BY ID
 router.get('/:id', async (req, res) => {
     try {

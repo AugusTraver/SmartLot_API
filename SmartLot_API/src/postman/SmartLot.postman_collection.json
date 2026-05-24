@@ -226,6 +226,86 @@
 					"response": []
 				},
 				{
+					"name": "Create Garagista (Success)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id_rol\": 2,\n    \"nombre\": \"Juan\",\n    \"apellido\": \"Perez\",\n    \"id_sede\": 1,\n    \"email\": \"juan.perez@test.com\",\n    \"telefono\": \"11223344\",\n    \"contraseña\": \"123456\",\n    \"id_empresa\": 1,\n    \"id_garage\": 3\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/usuario",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"usuario"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Garagista (Error - Missing id_garage)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id_rol\": 2,\n    \"nombre\": \"Juan\",\n    \"apellido\": \"Perez\",\n    \"id_sede\": 1,\n    \"email\": \"juan.perez.fail@test.com\",\n    \"telefono\": \"11223344\",\n    \"contraseña\": \"123456\",\n    \"id_empresa\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/usuario",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"usuario"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Garagistas By Garage Id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/usuario/garage/3",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"usuario",
+								"garage",
+								"3"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "UpdateById",
 					"request": {
 						"method": "PUT",
