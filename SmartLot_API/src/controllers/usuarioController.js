@@ -54,6 +54,8 @@ router.get('/:id', async (req, res) => {
 router.post('', async (req, res) => {
     try {
         const { id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa, id_garage } = req.body;
+        const rolNumerico = parseInt(id_rol, 10);
+        const esGarajista = rolNumerico === 3;
 
         // 1. Validaciones básicas de los datos de entrada
         if (!isValidString(nombre)) return res.status(400).send('El nombre es requerido.');
@@ -61,10 +63,21 @@ router.post('', async (req, res) => {
         if (!isValidEmail(email)) return res.status(400).send('El email no tiene un formato válido.');
         if (!isValidPassword(contraseña)) return res.status(400).send('La contraseña debe tener al menos 6 caracteres.');
         if (!isValidId(id_rol)) return res.status(400).send('El id_rol es requerido y debe ser un número válido.');
-        if (!isValidId(id_sede)) return res.status(400).send('El id_sede es requerido y debe ser un número válido.');
+
+        if (esGarajista) {
+            if (id_sede !== undefined && id_sede !== null && !isValidId(id_sede)) {
+                return res.status(400).send('El id_sede debe ser nulo o un número válido para el rol garajista.');
+            }
+            if (!isValidId(id_garage)) {
+                return res.status(400).send('El id_garage es requerido para el rol garajista y debe ser un número válido.');
+            }
+        } else {
+            if (!isValidId(id_sede)) return res.status(400).send('El id_sede es requerido y debe ser un número válido.');
+        }
+
         if (!isValidId(id_empresa)) return res.status(400).send('El id_empresa es requerido y debe ser un número válido.');
         if (telefono && !isValidPhone(telefono)) return res.status(400).send('El teléfono debe contener solo dígitos (mínimo 7).');
-        if (id_garage !== undefined && !isValidId(id_garage)) return res.status(400).send('El id_garage debe ser un número válido.');
+        if (id_garage !== undefined && id_garage !== null && !isValidId(id_garage)) return res.status(400).send('El id_garage debe ser un número válido.');
 
         const data = await svc.createAsync(req.body);
         data != null ? res.status(201).json(data) : res.status(500).send('Error interno al crear el usuario.');
