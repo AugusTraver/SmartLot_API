@@ -108,6 +108,19 @@ export default class UsuarioService {
         return await this.repo.updateAsync(id, entity);
     }
 
+    updateEstadoAsync = async (id, activo) => {
+        // 1. Validar primero que el usuario exista
+        const usuario = await this.repo.getByIdAsync(id);
+        if (!usuario) {
+            const error = new Error(`El usuario con ID ${id} no existe.`);
+            error.statusCode = 404;
+            throw error;
+        }
+
+        // 2. Llamar al repositorio para hacer el update parcial
+        return await this.repo.updateEstadoAsync(id, activo);
+    }
+
     deleteAsync = async (id) => await this.repo.deleteAsync(id);
 
     /**

@@ -53,7 +53,7 @@ router.get('/:id', async (req, res) => {
 // CREATE (POST)
 router.post('', async (req, res) => {
     try {
-        const { id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa, id_garage } = req.body;
+        const { id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa, id_garage, activo } = req.body;
         const rolNumerico = parseInt(id_rol, 10);
         const esGarajista = rolNumerico === 3;
 
@@ -116,6 +116,36 @@ router.put('/:id', async (req, res) => {
         }
     } catch (e) {
         console.error(`Error en PUT /usuario/${req.params.id}:`, e.message);
+        const status = e.statusCode || 500;
+        res.status(status).send(`Error: ${e.message}`);
+    }
+});
+
+// UPDATE ESTADO (PATCH)
+router.patch('/:id/estado', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const { activo } = req.body;
+
+        // 1. Validar el ID de la URL
+        if (!isValidId(id)) {
+            return res.status(400).send('El ID proporcionado no es válido.');
+        }
+
+        // 2. Validar que venga el campo "activo" y sea un booleano
+        if (activo === undefined || typeof activo !== 'boolean') {
+            return res.status(400).send('El campo "activo" es requerido y debe ser un valor booleano (true/false).');
+        }
+
+        const data = await svc.updateEstadoAsync(parseInt(id, 10), activo);
+
+        if (data !== null) {
+            res.status(200).json(data);
+        } else {
+            res.status(404).send('No encontrado: El usuario con ese ID no existe.');
+        }
+    } catch (e) {
+        console.error(`Error en PATCH /usuario/${req.params.id}/estado:`, e.message);
         const status = e.statusCode || 500;
         res.status(status).send(`Error: ${e.message}`);
     }

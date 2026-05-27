@@ -8,6 +8,7 @@ class Usuario {
     telefono;
     contraseña;
     id_empresa;
+    activo;
 }
 
 export default Usuario;

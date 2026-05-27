@@ -30,10 +30,10 @@ export default class UsuarioRepository {
     createAsync = async (entity) => {
         try {
             const result = await pool.query(
-                `INSERT INTO usuarios (id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+                `INSERT INTO usuarios (id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa, activo)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
                 [entity.id_rol, entity.nombre, entity.apellido, entity.id_sede,
-                 entity.email, entity.telefono, entity.contraseña, entity.id_empresa]
+                entity.email, entity.telefono, entity.contraseña, entity.id_empresa, entity.activo]
             );
             return result.rows[0];
         } catch (error) { console.error(error); return null; }
@@ -43,10 +43,10 @@ export default class UsuarioRepository {
         // En una transacción, no hacemos try/catch interno para que los errores
         // se propaguen y provoquen el ROLLBACK en la transacción.
         const result = await client.query(
-            `INSERT INTO usuarios (id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+            `INSERT INTO usuarios (id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa, activo)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
             [entity.id_rol, entity.nombre, entity.apellido, entity.id_sede,
-             entity.email, entity.telefono, entity.contraseña, entity.id_empresa]
+            entity.email, entity.telefono, entity.contraseña, entity.id_empresa, entity.activo]
         );
         return result.rows[0];
     }
@@ -55,12 +55,28 @@ export default class UsuarioRepository {
         try {
             const result = await pool.query(
                 `UPDATE usuarios SET id_rol=$1, nombre=$2, apellido=$3, id_sede=$4,
-                 email=$5, telefono=$6, contraseña=$7, id_empresa=$8 WHERE id=$9 RETURNING *`,
+                 email=$5, telefono=$6, contraseña=$7, id_empresa=$8, activo=$9 WHERE id=$10 RETURNING *`,
                 [entity.id_rol, entity.nombre, entity.apellido, entity.id_sede,
-                 entity.email, entity.telefono, entity.contraseña, entity.id_empresa, id]
+                entity.email, entity.telefono, entity.contraseña, entity.id_empresa, entity.activo, id]
             );
             return result.rows[0] ?? null;
         } catch (error) { console.error(error); return null; }
+    }
+
+    updateEstadoAsync = async (id, activo) => {
+        try {
+            const result = await pool.query(
+                `UPDATE usuarios 
+             SET activo = $1 
+             WHERE id = $2 
+             RETURNING *`,
+                [activo, id]
+            );
+            return result.rows[0] ?? null;
+        } catch (error) {
+            console.error('Error en updateEstadoAsync:', error);
+            return null;
+        }
     }
 
     deleteAsync = async (id) => {
