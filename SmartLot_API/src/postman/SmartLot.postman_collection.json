@@ -14,14 +14,11 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:3000/api/empresa",
-							"protocol": "http",
+							"raw": "{{url}}/empresa",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "3000",
 							"path": [
-								"api",
 								"empresa"
 							]
 						}
@@ -34,16 +31,13 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:3000/api/empresa/3",
-							"protocol": "http",
+							"raw": "{{url}}/empresa/2",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "3000",
 							"path": [
-								"api",
 								"empresa",
-								"3"
+								"2"
 							]
 						}
 					},
@@ -64,14 +58,11 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:3000/api/empresa",
-							"protocol": "http",
+							"raw": "{{url}}/empresa",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "3000",
 							"path": [
-								"api",
 								"empresa"
 							]
 						}
@@ -79,28 +70,16 @@
 					"response": []
 				},
 				{
-					"name": "Update",
+					"name": "DeleteById",
 					"request": {
-						"method": "PUT",
+						"method": "DELETE",
 						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n    \"nombre\": \"CAMBIO\",\r\n    \"descripcion\": \"CAMBIO\"\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
 						"url": {
-							"raw": "http://localhost:3000/api/empresa/3",
-							"protocol": "http",
+							"raw": "{{url}}/empresa/3",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "3000",
 							"path": [
-								"api",
 								"empresa",
 								"3"
 							]
@@ -109,21 +88,27 @@
 					"response": []
 				},
 				{
-					"name": "Delete",
+					"name": "UpdateById",
 					"request": {
-						"method": "DELETE",
+						"method": "PUT",
 						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "    {\r\n        \"id\": 2,\r\n        \"nombre\": \"Empresa Cambiada\",\r\n        \"descripcion\": \"Descripcion Cambiada\"\r\n    }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
-							"raw": "http://localhost:3000/api/empresa/3",
-							"protocol": "http",
+							"raw": "{{url}}/empresa/2",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "3000",
 							"path": [
-								"api",
 								"empresa",
-								"3"
+								"2"
 							]
 						}
 					},
@@ -140,14 +125,11 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:3000/api/usuario",
-							"protocol": "http",
+							"raw": "{{url}}/usuario",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "3000",
 							"path": [
-								"api",
 								"usuario"
 							]
 						}
@@ -160,38 +142,31 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:3000/api/usuario/3",
-							"protocol": "http",
+							"raw": "{{url}}/usuario/29",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "3000",
 							"path": [
-								"api",
 								"usuario",
-								"3"
+								"29"
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "GetGaragistasByGarageId",
+					"name": "DeleteById",
 					"request": {
-						"method": "GET",
+						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:3000/api/usuario/garage/3",
-							"protocol": "http",
+							"raw": "{{url}}/usuario/29",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "3000",
 							"path": [
-								"api",
 								"usuario",
-								"garage",
-								"3"
+								"29"
 							]
 						}
 					},
@@ -212,14 +187,11 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:3000/api/usuario",
-							"protocol": "http",
+							"raw": "{{url}}/usuario",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "3000",
 							"path": [
-								"api",
 								"usuario"
 							]
 						}
@@ -227,65 +199,7 @@
 					"response": []
 				},
 				{
-					"name": "Create Garagista (Success)",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"id_rol\": 2,\n    \"nombre\": \"Juan\",\n    \"apellido\": \"Perez\",\n    \"id_sede\": 1,\n    \"email\": \"juan.perez@test.com\",\n    \"telefono\": \"11223344\",\n    \"contraseña\": \"123456\",\n    \"id_empresa\": 1,\n    \"id_garage\": 3\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "http://localhost:3000/api/usuario",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "3000",
-							"path": [
-								"api",
-								"usuario"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Create Garagista (Error - Missing id_garage)",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"id_rol\": 2,\n    \"nombre\": \"Juan\",\n    \"apellido\": \"Perez\",\n    \"id_sede\": 1,\n    \"email\": \"juan.perez.fail@test.com\",\n    \"telefono\": \"11223344\",\n    \"contraseña\": \"123456\",\n    \"id_empresa\": 1\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "http://localhost:3000/api/usuario",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "3000",
-							"path": [
-								"api",
-								"usuario"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Update",
+					"name": "UpdateById",
 					"request": {
 						"method": "PUT",
 						"header": [],
@@ -299,37 +213,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:3000/api/usuario/2",
-							"protocol": "http",
+							"raw": "{{url}}/usuario/2",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "3000",
 							"path": [
-								"api",
 								"usuario",
 								"2"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Delete",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "http://localhost:3000/api/usuario/3",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "3000",
-							"path": [
-								"api",
-								"usuario",
-								"3"
 							]
 						}
 					},
@@ -346,14 +236,11 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:3000/api/sede",
-							"protocol": "http",
+							"raw": "{{url}}/sede",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "3000",
 							"path": [
-								"api",
 								"sede"
 							]
 						}
@@ -366,16 +253,31 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:3000/api/sede/1",
-							"protocol": "http",
+							"raw": "{{url}}/sede/1",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "3000",
 							"path": [
-								"api",
 								"sede",
 								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteById",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/sede/4",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"sede",
+								"4"
 							]
 						}
 					},
@@ -396,14 +298,11 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:3000/api/sede",
-							"protocol": "http",
+							"raw": "{{url}}/sede",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "3000",
 							"path": [
-								"api",
 								"sede"
 							]
 						}
@@ -411,7 +310,7 @@
 					"response": []
 				},
 				{
-					"name": "Update",
+					"name": "UpdateById",
 					"request": {
 						"method": "PUT",
 						"header": [],
@@ -425,37 +324,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:3000/api/sede/2",
-							"protocol": "http",
+							"raw": "{{url}}/sede/2",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "3000",
 							"path": [
-								"api",
 								"sede",
 								"2"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Delete",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "http://localhost:3000/api/sede/4",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "3000",
-							"path": [
-								"api",
-								"sede",
-								"4"
 							]
 						}
 					},
@@ -472,14 +347,11 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:3000/api/garage",
-							"protocol": "http",
+							"raw": "{{url}}/garage",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "3000",
 							"path": [
-								"api",
 								"garage"
 							]
 						}
@@ -492,14 +364,11 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:3000/api/garage/1",
-							"protocol": "http",
+							"raw": "{{url}}/garage/1",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "3000",
 							"path": [
-								"api",
 								"garage",
 								"1"
 							]
@@ -522,14 +391,11 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:3000/api/garage",
-							"protocol": "http",
+							"raw": "{{url}}/garage",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "3000",
 							"path": [
-								"api",
 								"garage"
 							]
 						}
@@ -537,7 +403,25 @@
 					"response": []
 				},
 				{
-					"name": "Update",
+					"name": "DeleteById",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/garage/3",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"garage",
+								"3"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UpdateById",
 					"request": {
 						"method": "PUT",
 						"header": [],
@@ -551,37 +435,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:3000/api/garage/2",
-							"protocol": "http",
+							"raw": "{{url}}/garage/2",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "3000",
 							"path": [
-								"api",
 								"garage",
 								"2"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Delete",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "http://localhost:3000/api/garage/3",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "3000",
-							"path": [
-								"api",
-								"garage",
-								"3"
 							]
 						}
 					},
