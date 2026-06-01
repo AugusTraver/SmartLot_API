@@ -2,12 +2,13 @@
 import { Router } from 'express';
 import UsuarioService from './../services/usuarioService.js';
 import { isValidId, isValidEmail, isValidString, isValidPassword, isValidPhone } from '../helpers/validatorHelper.js';
+import authMiddleware from '../middlewares/authMiddleware.js';
 
 const router = Router();
 const svc = new UsuarioService();
 
 // GET ALL
-router.get('', async (req, res) => {
+router.get('', authMiddleware, async (req, res) => {
     try {
         const data = await svc.getAllAsync();
         data != null ? res.status(200).json(data) : res.status(500).send('Error interno.');
@@ -18,7 +19,7 @@ router.get('', async (req, res) => {
 });
 
 // GET BY GARAGE ID
-router.get('/garage/:id_garage', async (req, res) => {
+router.get('/garage/:id_garage', authMiddleware, async (req, res) => {
     try {
         const idGarage = parseInt(req.params.id_garage);
         if (isNaN(idGarage)) {
@@ -59,8 +60,13 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// GET AUTHENTICATED USER
+router.get('/me', authMiddleware, (req, res) => {
+    res.status(200).json({ usuario: req.usuario });
+});
+
 // GET BY ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         if (isNaN(id)) {
@@ -76,7 +82,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // CREATE (POST)
-router.post('', async (req, res) => {
+router.post('', authMiddleware, async (req, res) => {
     try {
         const { id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa, id_garage, activo } = req.body;
         const rolNumerico = parseInt(id_rol, 10);
@@ -114,7 +120,7 @@ router.post('', async (req, res) => {
 });
 
 // UPDATE (PUT)
-router.put('/:id', async (req, res) => {
+router.put('/:id', authMiddleware, async (req, res) => {
     try {
         const id = req.params.id;
         
@@ -147,7 +153,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // UPDATE ESTADO (PATCH)
-router.patch('/:id/estado', async (req, res) => {
+router.patch('/:id/estado', authMiddleware, async (req, res) => {
     try {
         const id = req.params.id;
         const { activo } = req.body;
@@ -177,7 +183,7 @@ router.patch('/:id/estado', async (req, res) => {
 });
 
 // DELETE
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authMiddleware, async (req, res) => {
     try {
         const id = req.params.id;
         

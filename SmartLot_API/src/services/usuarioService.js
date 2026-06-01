@@ -7,6 +7,7 @@ import RolRepository from '../repositories/rolRepository.js';
 import GarageRepository from '../repositories/garageRepository.js';
 import UsuarioGarageRepository from '../repositories/usuarioGarageRepository.js';
 import ReservaRepository from '../repositories/reservaRepository.js';
+import jwt from 'jsonwebtoken';
 
 export default class UsuarioService {
     constructor() {
@@ -26,6 +27,7 @@ export default class UsuarioService {
 
     loginAsync = async (credentials) => {
         const usuario = await this.repo.getByEmailAsync(credentials.email);
+
         if (!usuario) {
             const error = new Error('Credenciales incorrectas.');
             error.statusCode = 401;
@@ -40,9 +42,27 @@ export default class UsuarioService {
 
         const { contraseña, ...usuarioSinContraseña } = usuario;
 
+        const payload = {
+            id: usuario.id,
+            email: usuario.email,
+            id_rol: usuario.id_rol,
+            id_empresa: usuario.id_empresa,
+            id_sede: usuario.id_sede
+        };
+
+        const token = jwt.sign(
+            payload,
+            process.env.JWT_SECRET,
+            {
+                expiresIn: process.env.JWT_EXPIRES_IN || '2h'
+            }
+        );
+
         return {
             usuario: usuarioSinContraseña,
-            token: null
+            token: token,
+            token_type: 'Bearer',
+            expires_in: process.env.JWT_EXPIRES_IN || '2h'
         };
     }
 

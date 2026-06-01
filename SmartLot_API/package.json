@@ -11,7 +11,6 @@
     "db-test": "node ./database/db.js",
     "apptest": "node src/appTest.js",
     "app": "node src/app.js"
-
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.3",
@@ -19,6 +18,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
     "pg": "^8.20.0",
     "routes": "^2.1.0"
   }
