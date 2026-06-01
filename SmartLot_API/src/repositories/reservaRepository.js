@@ -37,7 +37,7 @@ export default class ReservaRepository {
             const result = await pool.query(
                 `SELECT * FROM reservas
                  WHERE id_usuario = $1
-                   AND salio IS NULL
+                   AND COALESCE(salio, false) = false
                  ORDER BY fecha_entrada`,
                 [id_usuario]
             );
@@ -50,7 +50,7 @@ export default class ReservaRepository {
             const result = await pool.query(
                 `SELECT * FROM reservas
                  WHERE id_garage = $1
-                   AND salio IS NULL
+                   AND COALESCE(salio, false) = false
                  ORDER BY fecha_entrada`,
                 [id_garage]
             );
@@ -64,7 +64,7 @@ export default class ReservaRepository {
                 `SELECT * FROM reservas 
                  WHERE id_vehiculo = $1 
                    AND (fecha_entrada < $2 AND fecha_salida > $3)
-                   AND salio IS NULL
+                   AND COALESCE(salio, false) = false
                    AND ($4::integer IS NULL OR id != $4)`,
                 [id_vehiculo, fecha_salida, fecha_entrada, excludeId]
             );
@@ -78,7 +78,7 @@ export default class ReservaRepository {
                 `SELECT * FROM reservas 
                  WHERE id_usuario = $1 
                    AND (fecha_entrada < $2 AND fecha_salida > $3)
-                   AND salio IS NULL
+                   AND COALESCE(salio, false) = false
                    AND ($4::integer IS NULL OR id != $4)`,
                 [id_usuario, fecha_salida, fecha_entrada, excludeId]
             );
@@ -92,7 +92,7 @@ export default class ReservaRepository {
                 `SELECT * FROM reservas 
                  WHERE id_garage = $1 
                    AND (fecha_entrada < $2 AND fecha_salida > $3)
-                   AND salio IS NULL
+                   AND COALESCE(salio, false) = false
                    AND ($4::integer IS NULL OR id != $4)`,
                 [id_garage, fecha_salida, fecha_entrada, excludeId]
             );
@@ -130,6 +130,22 @@ export default class ReservaRepository {
              fecha_entrada=$4, fecha_salida=$5, entro=$6, salio=$7 WHERE id=$8 RETURNING *`,
             [entity.id_usuario, entity.id_garage, entity.id_vehiculo,
              entity.fecha_entrada, entity.fecha_salida, entity.entro, entity.salio, id]
+        );
+        return result.rows[0] ?? null;
+    }
+
+    registrarIngresoWithClientAsync = async (id, client) => {
+        const result = await client.query(
+            'UPDATE reservas SET entro = true WHERE id = $1 RETURNING *',
+            [id]
+        );
+        return result.rows[0] ?? null;
+    }
+
+    registrarSalidaWithClientAsync = async (id, client) => {
+        const result = await client.query(
+            'UPDATE reservas SET salio = true WHERE id = $1 RETURNING *',
+            [id]
         );
         return result.rows[0] ?? null;
     }

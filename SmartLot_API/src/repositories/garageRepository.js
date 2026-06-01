@@ -20,6 +20,11 @@ export default class GarageRepository {
         } catch (error) { console.error(error); return null; }
     }
 
+    getByIdForUpdateWithClientAsync = async (id, client) => {
+        const result = await client.query('SELECT * FROM garages WHERE id = $1 FOR UPDATE', [id]);
+        return result.rows[0] ?? null;
+    }
+
     getOcupacionReservaAsync = async (id) => {
         try {
             const result = await pool.query('SELECT ocupacion_reservas FROM garages WHERE id = $1', [id]);
@@ -100,7 +105,12 @@ export default class GarageRepository {
 
     incrementOcupacionReservasWithClientAsync = async (id, client) => {
         const result = await client.query(
-            'UPDATE garages SET ocupacion_reservas = COALESCE(ocupacion_reservas, 0) + 1 WHERE id = $1 RETURNING *',
+            `UPDATE garages
+             SET ocupacion_reservas = COALESCE(ocupacion_reservas, 0) + 1
+             WHERE id = $1
+               AND estado IS DISTINCT FROM false
+               AND COALESCE(ocupacion_reservas, 0) < COALESCE(capacidad_reservas, capacidad, 0)
+             RETURNING *`,
             [id]
         );
         return result.rows[0] ?? null;
@@ -118,7 +128,11 @@ export default class GarageRepository {
 
     decrementOcupacionReservasWithClientAsync = async (id, client) => {
         const result = await client.query(
-            'UPDATE garages SET ocupacion_reservas = GREATEST(0, COALESCE(ocupacion_reservas, 0) - 1) WHERE id = $1 RETURNING *',
+            `UPDATE garages
+             SET ocupacion_reservas = COALESCE(ocupacion_reservas, 0) - 1
+             WHERE id = $1
+               AND COALESCE(ocupacion_reservas, 0) > 0
+             RETURNING *`,
             [id]
         );
         return result.rows[0] ?? null;

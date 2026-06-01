@@ -37,14 +37,15 @@ router.get('/:id', async (req, res) => {
 // CREATE (POST)
 router.post('', async (req, res) => {
     try {
-        const { id_usuario, id_garage, id_vehiculo, fecha_entrada, fecha_salida } = req.body;
+        const body = req.body ?? {};
+        const { id_usuario, id_garage, id_vehiculo, fecha_entrada, fecha_salida } = body;
         if (!isValidId(String(id_usuario))) return res.status(400).send('El id_usuario es requerido y debe ser un número válido.');
         if (!isValidId(String(id_garage))) return res.status(400).send('El id_garage es requerido y debe ser un número válido.');
         if (!isValidId(String(id_vehiculo))) return res.status(400).send('El id_vehiculo es requerido y debe ser un número válido.');
         if (!isValidDate(fecha_entrada)) return res.status(400).send('La fecha de entrada es requerida y debe ser una fecha válida.');
         if (!isValidDate(fecha_salida)) return res.status(400).send('La fecha de salida es requerida y debe ser una fecha válida.');
 
-        const data = await svc.createAsync(req.body);
+        const data = await svc.createAsync(body);
         data != null ? res.status(201).json(data) : res.status(500).send('Error interno al crear la reserva.');
     } catch (e) { 
         console.error("Error en POST /reserva:", e.message);
@@ -57,14 +58,15 @@ router.post('', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         if (!isValidId(req.params.id)) return res.status(400).send('El ID proporcionado no es válido.');
-        const { id_usuario, id_garage, id_vehiculo, fecha_entrada, fecha_salida } = req.body;
+        const body = req.body ?? {};
+        const { id_usuario, id_garage, id_vehiculo, fecha_entrada, fecha_salida } = body;
         if (id_usuario !== undefined && !isValidId(String(id_usuario))) return res.status(400).send('El id_usuario debe ser un número válido.');
         if (id_garage !== undefined && !isValidId(String(id_garage))) return res.status(400).send('El id_garage debe ser un número válido.');
         if (id_vehiculo !== undefined && !isValidId(String(id_vehiculo))) return res.status(400).send('El id_vehiculo debe ser un número válido.');
         if (fecha_entrada !== undefined && !isValidDate(fecha_entrada)) return res.status(400).send('La fecha de entrada debe ser una fecha válida.');
         if (fecha_salida !== undefined && !isValidDate(fecha_salida)) return res.status(400).send('La fecha de salida debe ser una fecha válida.');
 
-        const data = await svc.updateAsync(parseInt(req.params.id, 10), req.body);
+        const data = await svc.updateAsync(parseInt(req.params.id, 10), body);
 
         if (data !== null) {
             res.status(200).json(data);
