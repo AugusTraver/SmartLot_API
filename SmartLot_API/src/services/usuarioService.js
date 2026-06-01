@@ -8,6 +8,9 @@ import GarageRepository from '../repositories/garageRepository.js';
 import UsuarioGarageRepository from '../repositories/usuarioGarageRepository.js';
 import ReservaRepository from '../repositories/reservaRepository.js';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+
+const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '10', 10);
 
 export default class UsuarioService {
     constructor() {
@@ -34,7 +37,13 @@ export default class UsuarioService {
             throw error;
         }
 
-        if (usuario.contraseña !== credentials.contraseña) {
+
+        const coincide = await bcrypt.compare(
+            credentials.contraseña,
+            usuario.contraseña
+        );
+
+        if (!coincide) {
             const error = new Error('Credenciales incorrectas.');
             error.statusCode = 401;
             throw error;
@@ -109,6 +118,11 @@ export default class UsuarioService {
             }
         }
 
+        // Hashear contraseña antes de persistir
+        if (entity.contraseña) {
+            entity.contraseña = await bcrypt.hash(entity.contraseña, BCRYPT_ROUNDS);
+        }
+
         if (esGaragista) {
             const client = await pool.connect();
             try {
@@ -147,6 +161,14 @@ export default class UsuarioService {
                 error.statusCode = 400;
                 throw error;
             }
+        }
+
+        // Si llega una contraseña nueva, hashearla.
+        // Si no llega, no tocar la columna (preservar el hash actual).
+        if (entity.contraseña) {
+            entity.contraseña = await bcrypt.hash(entity.contraseña, BCRYPT_ROUNDS);
+        } else {
+            delete entity.contraseña;
         }
 
         return await this.repo.updateAsync(id, entity);

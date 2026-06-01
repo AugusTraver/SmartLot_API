@@ -3,12 +3,13 @@ import { Router } from 'express';
 import UsuarioService from './../services/usuarioService.js';
 import { isValidId, isValidEmail, isValidString, isValidPassword, isValidPhone } from '../helpers/validatorHelper.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
+import { requireRole, requireAdmin } from '../middlewares/rolesMiddleware.js';
 
 const router = Router();
 const svc = new UsuarioService();
 
-// GET ALL
-router.get('', authMiddleware, async (req, res) => {
+// GET ALL (solo admin)
+router.get('', authMiddleware, requireAdmin, async (req, res) => {
     try {
         const data = await svc.getAllAsync();
         data != null ? res.status(200).json(data) : res.status(500).send('Error interno.');
@@ -18,8 +19,8 @@ router.get('', authMiddleware, async (req, res) => {
     }
 });
 
-// GET BY GARAGE ID
-router.get('/garage/:id_garage', authMiddleware, async (req, res) => {
+// GET BY GARAGE ID (admin o garagista)
+router.get('/garage/:id_garage', authMiddleware, requireRole(1, 3), async (req, res) => {
     try {
         const idGarage = parseInt(req.params.id_garage);
         if (isNaN(idGarage)) {
@@ -65,7 +66,7 @@ router.get('/me', authMiddleware, (req, res) => {
     res.status(200).json({ usuario: req.usuario });
 });
 
-// GET BY ID
+// GET BY ID (admin o el propio usuario)
 router.get('/:id', authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
@@ -73,16 +74,23 @@ router.get('/:id', authMiddleware, async (req, res) => {
             return res.status(400).send('El ID proporcionado no es válido.');
         }
 
+        const rol = Number(req.usuario.id_rol);
+        const esAdmin = rol === 1;
+        const esPropio = Number(req.usuario.id) === id;
+        if (!esAdmin && !esPropio) {
+            return res.status(403).send('No tiene permisos para ver este usuario.');
+        }
+
         const data = await svc.getByIdAsync(id);
         data != null ? res.status(200).json(data) : res.status(404).send('No encontrado.');
-    } catch (e) {
+    } catch (e) { 
         console.error(`Error en GET /usuario/${req.params.id}:`, e.message);
-        res.status(500).send(`Error: ${e.message}`);
+        res.status(500).send(`Error: ${e.message}`); 
     }
 });
 
-// CREATE (POST)
-router.post('', authMiddleware, async (req, res) => {
+// CREATE (POST) - solo admin
+router.post('', authMiddleware, requireAdmin, async (req, res) => {
     try {
         const { id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa, id_garage, activo } = req.body;
         const rolNumerico = parseInt(id_rol, 10);
@@ -119,7 +127,7 @@ router.post('', authMiddleware, async (req, res) => {
     }
 });
 
-// UPDATE (PUT)
+// UPDATE (PUT) - admin o el propio usuario
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
         const id = req.params.id;
@@ -129,9 +137,16 @@ router.put('/:id', authMiddleware, async (req, res) => {
             return res.status(400).send('El ID proporcionado no es válido.');
         }
 
-        // 2. Validaciones básicas del body (igual que en el POST, o podrías flexibilizarlas si permites actualizaciones parciales)
+        const rol = Number(req.usuario.id_rol);
+        const esAdmin = rol === 1;
+        const esPropio = Number(req.usuario.id) === Number(id);
+        if (!esAdmin && !esPropio) {
+            return res.status(403).send('No tiene permisos para modificar este usuario.');
+        }
+
+        // 2. Validaciones básicas del body
         const { id_rol, id_sede, id_empresa, email, telefono, contraseña } = req.body;
-        if (id_rol && !isValidId(String(id_rol))) return res.status(400).send('El id_rol debe ser un número válido.');
+        if (id_rol && !isVtealidId(String(id_rol))) return res.status(400).send('El id_rol debe ser un número válido.');
         if (id_sede && !isValidId(String(id_sede))) return res.status(400).send('El id_sede debe ser un número válido.');
         if (id_empresa && !isValidId(String(id_empresa))) return res.status(400).send('El id_empresa debe ser un número válido.');
         if (telefono && !isValidPhone(telefono)) return res.status(400).send('El teléfono debe contener solo dígitos (mínimo 7).');
@@ -152,8 +167,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// UPDATE ESTADO (PATCH)
-router.patch('/:id/estado', authMiddleware, async (req, res) => {
+// UPDATE ESTADO (PATCH) - solo admin
+router.patch('/:id/estado', authMiddleware, requireAdmin, async (req, res) => {
     try {
         const id = req.params.id;
         const { activo } = req.body;
@@ -182,8 +197,8 @@ router.patch('/:id/estado', authMiddleware, async (req, res) => {
     }
 });
 
-// DELETE
-router.delete('/:id', authMiddleware, async (req, res) => {
+// DELETE - solo admin
+router.delete('/:id', authMiddleware, requireAdmin, async (req, res) => {
     try {
         const id = req.params.id;
         

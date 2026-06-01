@@ -2,9 +2,18 @@
 import { Router } from 'express';
 import ReservaService from './../services/reservaService.js';
 import { isValidId, isValidDate } from '../helpers/validatorHelper.js';
+import authMiddleware from '../middlewares/authMiddleware.js';
+import { requireRole, requireAdmin } from '../middlewares/rolesMiddleware.js';
 
 const router = Router();
 const svc = new ReservaService();
+
+/**
+ * Convencion de roles (verificar contra la tabla `roles`):
+ *   1 = admin
+ *   2 = cliente
+ *   3 = garagista
+ */
 
 
 // GET ALL
@@ -98,8 +107,8 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
-// POST CANCEL
-router.post('/:id/cancel', async (req, res) => {
+// POST CANCEL (admin o cliente dueño de la reserva)
+router.post('/:id/cancel', authMiddleware, requireRole(1, 2), async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         if (isNaN(id)) {
@@ -115,8 +124,8 @@ router.post('/:id/cancel', async (req, res) => {
     }
 });
 
-// POST CHECK-IN
-router.post('/:id/check-in', async (req, res) => {
+// POST CHECK-IN (admin o garagista)
+router.post('/:id/check-in', authMiddleware, requireRole(1, 3), async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         if (isNaN(id)) {
@@ -132,8 +141,8 @@ router.post('/:id/check-in', async (req, res) => {
     }
 });
 
-// POST CHECK-OUT
-router.post('/:id/check-out', async (req, res) => {
+// POST CHECK-OUT (admin o garagista)
+router.post('/:id/check-out', authMiddleware, requireRole(1, 3), async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         if (isNaN(id)) {

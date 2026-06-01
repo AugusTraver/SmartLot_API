@@ -1,0 +1,38 @@
+// rolesMiddleware.js
+// Middleware de autorizacion por rol.
+// Se aplica DESPUES de authMiddleware, ya que necesita `req.usuario` con `id_rol`.
+
+/**
+ * Permite el paso solo si el usuario autenticado tiene uno de los roles indicados.
+ * Uso: router.post('/x', authMiddleware, requireRole(1, 3), handler)
+ *
+ * Convencion de IDs (verificar contra la tabla `roles`):
+ *   1 = admin
+ *   2 = cliente
+ *   3 = garagista
+ */
+const requireRole = (...rolesPermitidos) => {
+    return (req, res, next) => {
+        if (!req.usuario) {
+            return res.status(401).json({ message: 'No autenticado.' });
+        }
+
+        const rol = Number(req.usuario.id_rol);
+
+        if (!Number.isInteger(rol) || !rolesPermitidos.includes(rol)) {
+            return res.status(403).json({
+                message: 'No tiene permisos para realizar esta accion.'
+            });
+        }
+
+        next();
+    };
+};
+
+/**
+ * Atajo para admin. Uso: router.delete('/x', authMiddleware, requireAdmin, handler)
+ */
+const requireAdmin = requireRole(1);
+
+export { requireRole, requireAdmin };
+export default requireRole;

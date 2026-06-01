@@ -10,7 +10,7 @@ const authMiddleware = (req, res, next) => {
     const parts = authHeader.split(' ');
 
     if (parts.length !== 2 || parts[0] !== 'Bearer' || !parts[1]) {
-        return res.status(401).json({ message: 'Formato de token invalido. Use: Bearer TOKEN.' });
+        return res.status(401).json({ message: 'Formato de token invalido.' });
     }
 
     const token = parts[1];
