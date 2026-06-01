@@ -34,6 +34,31 @@ router.get('/garage/:id_garage', async (req, res) => {
     }
 });
 
+// LOGIN
+router.post('/login', async (req, res) => {
+    try {
+        const { email, contraseña } = req.body;
+
+        if (email === undefined || email === null || String(email).trim() === '') {
+            return res.status(400).send('El email es requerido.');
+        }
+        if (!isValidEmail(email)) return res.status(400).send('El email no tiene un formato válido.');
+        if (contraseña === undefined || contraseña === null) {
+            return res.status(400).send('La contraseña es requerida.');
+        }
+        if (typeof contraseña !== 'string' || contraseña.trim() === '') {
+            return res.status(400).send('La contraseña no puede estar vacía.');
+        }
+
+        const data = await svc.loginAsync({ email, contraseña });
+        res.status(200).json(data);
+    } catch (e) {
+        console.error("Error en POST /usuario/login:", e.message);
+        const status = e.statusCode || 500;
+        res.status(status).send(`Error: ${e.message}`);
+    }
+});
+
 // GET BY ID
 router.get('/:id', async (req, res) => {
     try {
@@ -165,7 +190,8 @@ router.delete('/:id', async (req, res) => {
         ok ? res.status(200).send('Usuario eliminado exitosamente.') : res.status(404).send('No encontrado: El usuario con ese ID no existe.');
     } catch (e) { 
         console.error(`Error en DELETE /usuario/${req.params.id}:`, e.message);
-        res.status(500).send(`Error: ${e.message}`); 
+        const status = e.statusCode || 500;
+        res.status(status).send(`Error: ${e.message}`); 
     }
 });
 

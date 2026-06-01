@@ -91,7 +91,25 @@ router.delete('/:id', async (req, res) => {
         ok ? res.status(200).send('Eliminado exitosamente.') : res.status(404).send('No encontrado: La reserva con ese ID no existe.');
     } catch (e) { 
         console.error(`Error en DELETE /reserva/${req.params.id}:`, e.message);
-        res.status(500).send(`Error: ${e.message}`); 
+        const status = e.statusCode || 500;
+        res.status(status).send(`Error: ${e.message}`); 
+    }
+});
+
+// POST CANCEL
+router.post('/:id/cancel', async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        if (isNaN(id)) {
+            return res.status(400).send('El ID proporcionado no es válido.');
+        }
+
+        const ok = await svc.cancelarAsync(id);
+        ok ? res.status(200).send('Reserva cancelada exitosamente.') : res.status(404).send('No encontrado: La reserva con ese ID no existe.');
+    } catch (e) {
+        console.error(`Error en POST /reserva/${req.params.id}/cancel:`, e.message);
+        const status = e.statusCode || 500;
+        res.status(status).send(`Error: ${e.message}`);
     }
 });
 

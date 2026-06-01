@@ -6,6 +6,7 @@ import EmpresaRepository from '../repositories/empresaRepository.js';
 import RolRepository from '../repositories/rolRepository.js';
 import GarageRepository from '../repositories/garageRepository.js';
 import UsuarioGarageRepository from '../repositories/usuarioGarageRepository.js';
+import ReservaRepository from '../repositories/reservaRepository.js';
 
 export default class UsuarioService {
     constructor() {
@@ -16,11 +17,34 @@ export default class UsuarioService {
         this.rolRepo = new RolRepository();
         this.garageRepo = new GarageRepository();
         this.usuarioGarageRepo = new UsuarioGarageRepository();
+        this.reservaRepo = new ReservaRepository();
     }
 
     getAllAsync = async () => await this.repo.getAllAsync();
 
     getByIdAsync = async (id) => await this.repo.getByIdAsync(id);
+
+    loginAsync = async (credentials) => {
+        const usuario = await this.repo.getByEmailAsync(credentials.email);
+        if (!usuario) {
+            const error = new Error('Credenciales incorrectas.');
+            error.statusCode = 401;
+            throw error;
+        }
+
+        if (usuario.contraseña !== credentials.contraseña) {
+            const error = new Error('Credenciales incorrectas.');
+            error.statusCode = 401;
+            throw error;
+        }
+
+        const { contraseña, ...usuarioSinContraseña } = usuario;
+
+        return {
+            usuario: usuarioSinContraseña,
+            token: null
+        };
+    }
 
     getGaragistasByGarageIdAsync = async (id_garage) => {
         // Validar que el garage exista
@@ -117,11 +141,26 @@ export default class UsuarioService {
             throw error;
         }
 
+        if (activo === false) {
+            await this._validarSinReservasActivasAsync(id, 'desactivar');
+        }
+
         // 2. Llamar al repositorio para hacer el update parcial
         return await this.repo.updateEstadoAsync(id, activo);
     }
 
-    deleteAsync = async (id) => await this.repo.deleteAsync(id);
+    deleteAsync = async (id) => {
+        const usuario = await this.repo.getByIdAsync(id);
+        if (!usuario) {
+            const error = new Error(`El usuario con ID ${id} no existe.`);
+            error.statusCode = 404;
+            throw error;
+        }
+
+        await this._validarSinReservasAsync(id, 'eliminar');
+
+        return await this.repo.deleteAsync(id);
+    }
 
     /**
      * Valida que las entidades relacionadas (rol, sede, empresa) existan en la BD.
@@ -156,6 +195,24 @@ export default class UsuarioService {
 
         if (errores.length > 0) {
             const error = new Error(errores.join(' '));
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    _validarSinReservasActivasAsync = async (id_usuario, accion) => {
+        const reservasActivas = await this.reservaRepo.getActivasByUsuarioAsync(id_usuario);
+        if (reservasActivas && reservasActivas.length > 0) {
+            const error = new Error(`No se puede ${accion} el usuario con ID ${id_usuario} porque tiene reservas activas.`);
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    _validarSinReservasAsync = async (id_usuario, accion) => {
+        const reservas = await this.reservaRepo.getByUsuarioAsync(id_usuario);
+        if (reservas && reservas.length > 0) {
+            const error = new Error(`No se puede ${accion} el usuario con ID ${id_usuario} porque tiene reservas asociadas.`);
             error.statusCode = 400;
             throw error;
         }

@@ -1,4 +1,5 @@
 // reservaService.js
+import pool from '../database/db.js';
 import ReservaRepository from '../repositories/reservaRepository.js';
 import UsuarioRepository from '../repositories/usuarioRepository.js';
 import GarageRepository from '../repositories/garageRepository.js';
@@ -17,19 +18,48 @@ export default class ReservaService {
 
     getByIdAsync = async (id) => await this.repo.getByIdAsync(id);
 
+    getActivasByUsuarioAsync = async (id_usuario) => await this.repo.getActivasByUsuarioAsync(id_usuario);
+
+    usuarioTieneReservasActivasAsync = async (id_usuario) => {
+        const reservas = await this.repo.getActivasByUsuarioAsync(id_usuario);
+        return reservas !== null && reservas.length > 0;
+    }
+
     createAsync = async (entity) => {
+        this._validarCamposObligatorios(entity);
         await this._validarRelacionesAsync(entity);
         this._validarFechasAsync(entity);
         await this._validarDisponibilidadAsync(entity);
+
+        entity.entro = null;
+        entity.salio = null;
+
         return await this.repo.createAsync(entity);
     }
 
     updateAsync = async (id, entity) => {
         const current = await this.repo.getByIdAsync(id);
-        if (!current) return null;
+        if (!current) {
+            const error = new Error(`La reserva con ID ${id} no existe.`);
+            error.statusCode = 404;
+            throw error;
+        }
+
+        if (current.salio) {
+            const error = new Error(`La reserva con ID ${id} ya fue finalizada y no puede modificarse.`);
+            error.statusCode = 400;
+            throw error;
+        }
+
+        if (current.entro) {
+            const error = new Error(`La reserva con ID ${id} ya registro su ingreso y no puede modificarse.`);
+            error.statusCode = 400;
+            throw error;
+        }
 
         const mergedEntity = { ...current, ...entity };
 
+        this._validarCamposObligatorios(mergedEntity);
         await this._validarRelacionesAsync(mergedEntity);
         this._validarFechasAsync(mergedEntity);
         await this._validarDisponibilidadAsync(mergedEntity, id);
@@ -37,7 +67,24 @@ export default class ReservaService {
         return await this.repo.updateAsync(id, mergedEntity);
     }
 
-    deleteAsync = async (id) => await this.repo.deleteAsync(id);
+    deleteAsync = async (id) => await this.cancelarAsync(id);
+
+    cancelarAsync = async (id) => {
+        const reserva = await this.repo.getByIdAsync(id);
+        if (!reserva) {
+            const error = new Error(`La reserva con ID ${id} no existe.`);
+            error.statusCode = 404;
+            throw error;
+        }
+
+        if (reserva.entro && !reserva.salio) {
+            const error = new Error(`La reserva con ID ${id} ya registro su ingreso. Debe registrar la salida antes de cancelarla.`);
+            error.statusCode = 400;
+            throw error;
+        }
+
+        return await this.repo.cancelarAsync(id);
+    }
 
     checkInAsync = async (id) => {
         const reserva = await this.repo.getByIdAsync(id);
@@ -48,27 +95,67 @@ export default class ReservaService {
         }
 
         if (reserva.entro) {
-            const error = new Error(`La reserva con ID ${id} ya registró su ingreso.`);
+            const error = new Error(`La reserva con ID ${id} ya registro su ingreso.`);
             error.statusCode = 400;
             throw error;
         }
 
         if (reserva.salio) {
-            const error = new Error(`La reserva con ID ${id} ya registró su salida.`);
+            const error = new Error(`La reserva con ID ${id} ya registro su salida.`);
             error.statusCode = 400;
             throw error;
         }
 
-        // Marcar ingreso
-        reserva.entro = new Date();
-        const updatedReserva = await this.repo.updateAsync(id, reserva);
-
-        // Incrementar ocupación en el garage
-        if (updatedReserva) {
-            await this.garageRepo.incrementOcupacionReservasAsync(reserva.id_garage);
+        const ahora = new Date();
+        if (ahora < new Date(reserva.fecha_entrada)) {
+            const error = new Error(`La reserva con ID ${id} todavia no esta habilitada para registrar ingreso.`);
+            error.statusCode = 400;
+            throw error;
         }
 
-        return updatedReserva;
+        if (ahora > new Date(reserva.fecha_salida)) {
+            const error = new Error(`La reserva con ID ${id} ya supero su horario de salida previsto.`);
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const garage = await this.garageRepo.getByIdAsync(reserva.id_garage);
+        if (!garage) {
+            const error = new Error(`El garage con ID ${reserva.id_garage} no existe.`);
+            error.statusCode = 400;
+            throw error;
+        }
+
+        this._validarGarageDisponible(garage);
+        this._validarCapacidadActualGarage(garage);
+
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+
+            reserva.entro = new Date();
+            const updatedReserva = await this.repo.updateWithClientAsync(id, reserva, client);
+            if (!updatedReserva) {
+                const error = new Error('Error al registrar el ingreso de la reserva.');
+                error.statusCode = 500;
+                throw error;
+            }
+
+            const updatedGarage = await this.garageRepo.incrementOcupacionReservasWithClientAsync(reserva.id_garage, client);
+            if (!updatedGarage) {
+                const error = new Error(`Error al actualizar la ocupacion del garage con ID ${reserva.id_garage}.`);
+                error.statusCode = 500;
+                throw error;
+            }
+
+            await client.query('COMMIT');
+            return updatedReserva;
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
     }
 
     checkOutAsync = async (id) => {
@@ -86,51 +173,90 @@ export default class ReservaService {
         }
 
         if (reserva.salio) {
-            const error = new Error(`La reserva con ID ${id} ya registró su salida.`);
+            const error = new Error(`La reserva con ID ${id} ya registro su salida.`);
             error.statusCode = 400;
             throw error;
         }
 
-        // Marcar salida
-        reserva.salio = new Date();
-        const updatedReserva = await this.repo.updateAsync(id, reserva);
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
 
-        // Decrementar ocupación en el garage
-        if (updatedReserva) {
-            await this.garageRepo.decrementOcupacionReservasAsync(reserva.id_garage);
+            reserva.salio = new Date();
+            const updatedReserva = await this.repo.updateWithClientAsync(id, reserva, client);
+            if (!updatedReserva) {
+                const error = new Error('Error al registrar la salida de la reserva.');
+                error.statusCode = 500;
+                throw error;
+            }
+
+            const updatedGarage = await this.garageRepo.decrementOcupacionReservasWithClientAsync(reserva.id_garage, client);
+            if (!updatedGarage) {
+                const error = new Error(`Error al actualizar la ocupacion del garage con ID ${reserva.id_garage}.`);
+                error.statusCode = 500;
+                throw error;
+            }
+
+            await client.query('COMMIT');
+            return updatedReserva;
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
         }
-
-        return updatedReserva;
     }
 
-    /**
-     * Valida que las entidades relacionadas (usuario, garage, vehiculo) existan en la BD.
-     * Recopila todos los errores y los lanza juntos.
-     */
-    _validarRelacionesAsync = async (entity) => {
+    _validarCamposObligatorios = (entity) => {
         const errores = [];
 
-        // Validar que el usuario exista
+        if (!entity.id_usuario) errores.push('El id_usuario es requerido.');
+        if (!entity.id_garage) errores.push('El id_garage es requerido.');
+        if (!entity.id_vehiculo) errores.push('El id_vehiculo es requerido.');
+        if (!entity.fecha_entrada) errores.push('La fecha de entrada es requerida.');
+        if (!entity.fecha_salida) errores.push('La fecha de salida es requerida.');
+
+        if (errores.length > 0) {
+            const error = new Error(errores.join(' '));
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    _validarRelacionesAsync = async (entity) => {
+        const errores = [];
+        let usuario = null;
+        let garage = null;
+        let vehiculo = null;
+
         if (entity.id_usuario) {
-            const usuario = await this.usuarioRepo.getByIdAsync(entity.id_usuario);
+            usuario = await this.usuarioRepo.getByIdAsync(entity.id_usuario);
             if (!usuario) {
                 errores.push(`El usuario con ID ${entity.id_usuario} no existe.`);
+            } else if (usuario.activo === false) {
+                errores.push(`El usuario con ID ${entity.id_usuario} esta inactivo.`);
             }
         }
 
-        // Validar que el garage exista
         if (entity.id_garage) {
-            const garage = await this.garageRepo.getByIdAsync(entity.id_garage);
+            garage = await this.garageRepo.getByIdAsync(entity.id_garage);
             if (!garage) {
                 errores.push(`El garage con ID ${entity.id_garage} no existe.`);
+            } else {
+                try {
+                    this._validarGarageDisponible(garage);
+                } catch (error) {
+                    errores.push(error.message);
+                }
             }
         }
 
-        // Validar que el vehículo exista
         if (entity.id_vehiculo) {
-            const vehiculo = await this.vehiculoRepo.getByIdAsync(entity.id_vehiculo);
+            vehiculo = await this.vehiculoRepo.getByIdAsync(entity.id_vehiculo);
             if (!vehiculo) {
-                errores.push(`El vehículo con ID ${entity.id_vehiculo} no existe.`);
+                errores.push(`El vehiculo con ID ${entity.id_vehiculo} no existe.`);
+            } else if (usuario && vehiculo.id_usuario !== usuario.id) {
+                errores.push(`El vehiculo con ID ${entity.id_vehiculo} no pertenece al usuario con ID ${entity.id_usuario}.`);
             }
         }
 
@@ -141,104 +267,139 @@ export default class ReservaService {
         }
     }
 
-    /**
-     * Valida las reglas de negocio de fechas.
-     * Lanza un error descriptivo si alguna validación falla.
-     */
     _validarFechasAsync = (entity) => {
-        // Validar que la fecha de entrada no sea en el pasado
-        if (entity.fecha_entrada) {
-            if (new Date(entity.fecha_entrada) < new Date()) {
-                const error = new Error('La fecha de entrada no puede ser en el pasado.');
-                error.statusCode = 400;
-                throw error;
-            }
+        const fechaEntrada = new Date(entity.fecha_entrada);
+        const fechaSalida = new Date(entity.fecha_salida);
+
+        if (isNaN(fechaEntrada.getTime())) {
+            const error = new Error('La fecha de entrada debe ser una fecha valida.');
+            error.statusCode = 400;
+            throw error;
         }
 
-        // Validar que la fecha de salida sea posterior a la fecha de entrada
-        if (entity.fecha_entrada && entity.fecha_salida) {
-            if (new Date(entity.fecha_salida) <= new Date(entity.fecha_entrada)) {
-                const error = new Error('La fecha de salida debe ser posterior a la fecha de entrada.');
-                error.statusCode = 400;
-                throw error;
-            }
+        if (isNaN(fechaSalida.getTime())) {
+            const error = new Error('La fecha de salida debe ser una fecha valida.');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        if (fechaEntrada < new Date()) {
+            const error = new Error('La fecha de entrada no puede ser en el pasado.');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        if (fechaSalida <= fechaEntrada) {
+            const error = new Error('La fecha de salida debe ser posterior a la fecha de entrada.');
+            error.statusCode = 400;
+            throw error;
         }
     }
 
-    /**
-     * Valida la disponibilidad del vehículo y la capacidad de reservas del garage.
-     * Lanza un error si hay solapamiento de vehículo o si se supera la capacidad máxima.
-     */
     _validarDisponibilidadAsync = async (entity, excludeId = null) => {
-        // 1. Validar solapamiento del vehículo
-        if (entity.id_vehiculo && entity.fecha_entrada && entity.fecha_salida) {
-            const overlapVehiculo = await this.repo.getOverlapByVehiculoAsync(
-                entity.id_vehiculo,
-                entity.fecha_entrada,
-                entity.fecha_salida,
-                excludeId
-            );
-            if (overlapVehiculo && overlapVehiculo.length > 0) {
-                const error = new Error(`El vehículo con ID ${entity.id_vehiculo} ya tiene una reserva activa durante este período.`);
-                error.statusCode = 400;
-                throw error;
-            }
+        const overlapUsuario = await this.repo.getOverlapByUsuarioAsync(
+            entity.id_usuario,
+            entity.fecha_entrada,
+            entity.fecha_salida,
+            excludeId
+        );
+        if (overlapUsuario && overlapUsuario.length > 0) {
+            const error = new Error(`El usuario con ID ${entity.id_usuario} ya tiene una reserva activa durante este periodo.`);
+            error.statusCode = 400;
+            throw error;
         }
 
-        // 2. Validar capacidad máxima de reservas del garage
-        if (entity.id_garage && entity.fecha_entrada && entity.fecha_salida) {
-            const garage = await this.garageRepo.getByIdAsync(entity.id_garage);
-            if (!garage) {
-                const error = new Error(`El garage con ID ${entity.id_garage} no existe.`);
-                error.statusCode = 400;
-                throw error;
-            }
+        const overlapVehiculo = await this.repo.getOverlapByVehiculoAsync(
+            entity.id_vehiculo,
+            entity.fecha_entrada,
+            entity.fecha_salida,
+            excludeId
+        );
+        if (overlapVehiculo && overlapVehiculo.length > 0) {
+            const error = new Error(`El vehiculo con ID ${entity.id_vehiculo} ya tiene una reserva activa durante este periodo.`);
+            error.statusCode = 400;
+            throw error;
+        }
 
-            const capReservas = garage.capacidad_reservas !== null && garage.capacidad_reservas !== undefined 
-                ? garage.capacidad_reservas 
-                : (garage.capacidad || 0);
+        const garage = await this.garageRepo.getByIdAsync(entity.id_garage);
+        if (!garage) {
+            const error = new Error(`El garage con ID ${entity.id_garage} no existe.`);
+            error.statusCode = 400;
+            throw error;
+        }
 
-            const overlapGarage = await this.repo.getOverlapByGarageAsync(
-                entity.id_garage,
-                entity.fecha_entrada,
-                entity.fecha_salida,
-                excludeId
-            );
+        this._validarGarageDisponible(garage);
 
-            if (overlapGarage) {
-                const events = [];
-                // reserva propuesta
-                events.push({ time: new Date(entity.fecha_entrada), type: 1 });
-                events.push({ time: new Date(entity.fecha_salida), type: -1 });
+        const capReservas = garage.capacidad_reservas !== null && garage.capacidad_reservas !== undefined
+            ? garage.capacidad_reservas
+            : (garage.capacidad || 0);
 
-                // reservas existentes solapadas
-                for (const r of overlapGarage) {
-                    events.push({ time: new Date(r.fecha_entrada), type: 1 });
-                    events.push({ time: new Date(r.fecha_salida), type: -1 });
-                }
+        if (capReservas <= 0) {
+            const error = new Error(`El garage con ID ${entity.id_garage} no tiene capacidad disponible para reservas.`);
+            error.statusCode = 400;
+            throw error;
+        }
 
-                // Ordenar: primero por tiempo, luego salidas (-1) antes de entradas (1)
-                events.sort((a, b) => {
-                    const diff = a.time.getTime() - b.time.getTime();
-                    if (diff !== 0) return diff;
-                    return a.type - b.type;
-                });
+        const overlapGarage = await this.repo.getOverlapByGarageAsync(
+            entity.id_garage,
+            entity.fecha_entrada,
+            entity.fecha_salida,
+            excludeId
+        );
 
-                let current = 0;
-                let max = 0;
-                for (const event of events) {
-                    current += event.type;
-                    if (current > max) {
-                        max = current;
-                    }
-                }
+        const events = [
+            { time: new Date(entity.fecha_entrada), type: 1 },
+            { time: new Date(entity.fecha_salida), type: -1 }
+        ];
 
-                if (max > capReservas) {
-                    const error = new Error(`El garage con ID ${entity.id_garage} supera su capacidad máxima de reservas (${capReservas}) durante el período solicitado.`);
-                    error.statusCode = 400;
-                    throw error;
-                }
-            }
+        for (const reserva of overlapGarage || []) {
+            events.push({ time: new Date(reserva.fecha_entrada), type: 1 });
+            events.push({ time: new Date(reserva.fecha_salida), type: -1 });
+        }
+
+        events.sort((a, b) => {
+            const diff = a.time.getTime() - b.time.getTime();
+            if (diff !== 0) return diff;
+            return a.type - b.type;
+        });
+
+        let current = 0;
+        let max = 0;
+        for (const event of events) {
+            current += event.type;
+            if (current > max) max = current;
+        }
+
+        if (max > capReservas) {
+            const error = new Error(`El garage con ID ${entity.id_garage} supera su capacidad maxima de reservas (${capReservas}) durante el periodo solicitado.`);
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    _validarGarageDisponible = (garage) => {
+        if (garage.estado === false) {
+            const error = new Error(`El garage con ID ${garage.id} no esta disponible.`);
+            error.statusCode = 400;
+            throw error;
+        }
+
+        if (!garage.capacidad || garage.capacidad <= 0) {
+            const error = new Error(`El garage con ID ${garage.id} no tiene capacidad configurada.`);
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    _validarCapacidadActualGarage = (garage) => {
+        const totalCap = garage.capacidad || 0;
+        const currentNoRes = garage.ocupacion_no_reservas || 0;
+        const currentRes = garage.ocupacion_reservas || 0;
+
+        if (currentNoRes + currentRes >= totalCap) {
+            const error = new Error(`El garage con ID ${garage.id} esta completamente lleno.`);
+            error.statusCode = 400;
+            throw error;
         }
     }
 }

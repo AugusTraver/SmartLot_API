@@ -98,6 +98,14 @@ export default class GarageRepository {
         } catch (error) { console.error(error); return null; }
     }
 
+    incrementOcupacionReservasWithClientAsync = async (id, client) => {
+        const result = await client.query(
+            'UPDATE garages SET ocupacion_reservas = COALESCE(ocupacion_reservas, 0) + 1 WHERE id = $1 RETURNING *',
+            [id]
+        );
+        return result.rows[0] ?? null;
+    }
+
     decrementOcupacionReservasAsync = async (id) => {
         try {
             const result = await pool.query(
@@ -106,6 +114,14 @@ export default class GarageRepository {
             );
             return result.rows[0] ?? null;
         } catch (error) { console.error(error); return null; }
+    }
+
+    decrementOcupacionReservasWithClientAsync = async (id, client) => {
+        const result = await client.query(
+            'UPDATE garages SET ocupacion_reservas = GREATEST(0, COALESCE(ocupacion_reservas, 0) - 1) WHERE id = $1 RETURNING *',
+            [id]
+        );
+        return result.rows[0] ?? null;
     }
 
     incrementOcupacionNoReservasAsync = async (id) => {
