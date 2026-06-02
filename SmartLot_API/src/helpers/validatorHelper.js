@@ -29,7 +29,8 @@ export const isValidString = (str, minLength = 1) => {
  * Valida si la contraseña cumple con los requisitos mínimos (ej. al menos 6 caracteres).
  */
 export const isValidPassword = (password) => {
-    return typeof password === 'string' && password.length >= 6;
+    if (typeof password !== 'string') return false;
+    return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(password);
 };
 
 /**

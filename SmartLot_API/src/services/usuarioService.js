@@ -10,7 +10,7 @@ import ReservaRepository from '../repositories/reservaRepository.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
-const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '10', 10);
+const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
 
 export default class UsuarioService {
     constructor() {
@@ -37,6 +37,11 @@ export default class UsuarioService {
             throw error;
         }
 
+        if (usuario.activo === false) {
+            const error = new Error('Cuenta desactivada.');
+            error.statusCode = 403;
+            throw error;
+        }
 
         const coincide = await bcrypt.compare(
             credentials.contraseña,

@@ -1,64 +1,53 @@
-// usuarioController.js
 import { Router } from 'express';
 import UsuarioService from './../services/usuarioService.js';
 import { isValidId, isValidEmail, isValidString, isValidPassword, isValidPhone } from '../helpers/validatorHelper.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 import { requireRole, requireAdmin } from '../middlewares/rolesMiddleware.js';
+import authRateLimiter from '../middlewares/rateLimiterMiddleware.js';
 
 const router = Router();
 const svc = new UsuarioService();
 
+function throwError(message, statusCode) {
+    const error = new Error(message);
+    error.statusCode = statusCode;
+    throw error;
+}
+
 // GET ALL (solo admin)
 router.get('', authMiddleware, requireAdmin, async (req, res) => {
-    try {
-        const data = await svc.getAllAsync();
-        data != null ? res.status(200).json(data) : res.status(500).send('Error interno.');
-    } catch (e) { 
-        console.error("Error en GET /garage:", e.message);
-        res.status(500).send(`Error: ${e.message}`); 
-    }
+    const data = await svc.getAllAsync();
+    if (!data) throwError('Error interno del servidor', 500);
+    res.status(200).json(data);
 });
 
 // GET BY GARAGE ID (admin o garagista)
 router.get('/garage/:id_garage', authMiddleware, requireRole(1, 3), async (req, res) => {
-    try {
-        const idGarage = parseInt(req.params.id_garage);
-        if (isNaN(idGarage)) {
-            return res.status(400).send('El ID de garage proporcionado no es válido.');
-        }
+    const idGarage = parseInt(req.params.id_garage);
+    if (isNaN(idGarage)) throwError('El ID de garage proporcionado no es válido.', 400);
 
-        const data = await svc.getGaragistasByGarageIdAsync(idGarage);
-        data != null ? res.status(200).json(data) : res.status(404).send('No encontrado.');
-    } catch (e) {
-        console.error(`Error en GET /usuario/garage/${req.params.id_garage}:`, e.message);
-        const status = e.statusCode || 500;
-        res.status(status).send(`Error: ${e.message}`);
-    }
+    const data = await svc.getGaragistasByGarageIdAsync(idGarage);
+    if (!data) throwError('No encontrado.', 404);
+    res.status(200).json(data);
 });
 
 // LOGIN
-router.post('/login', async (req, res) => {
-    try {
-        const { email, contraseña } = req.body;
+router.post('/login', authRateLimiter, async (req, res) => {
+    const { email, contraseña } = req.body;
 
-        if (email === undefined || email === null || String(email).trim() === '') {
-            return res.status(400).send('El email es requerido.');
-        }
-        if (!isValidEmail(email)) return res.status(400).send('El email no tiene un formato válido.');
-        if (contraseña === undefined || contraseña === null) {
-            return res.status(400).send('La contraseña es requerida.');
-        }
-        if (typeof contraseña !== 'string' || contraseña.trim() === '') {
-            return res.status(400).send('La contraseña no puede estar vacía.');
-        }
-
-        const data = await svc.loginAsync({ email, contraseña });
-        res.status(200).json(data);
-    } catch (e) {
-        console.error("Error en POST /usuario/login:", e.message);
-        const status = e.statusCode || 500;
-        res.status(status).send(`Error: ${e.message}`);
+    if (email === undefined || email === null || String(email).trim() === '') {
+        throwError('El email es requerido.', 400);
     }
+    if (!isValidEmail(email)) throwError('El email no tiene un formato válido.', 400);
+    if (contraseña === undefined || contraseña === null) {
+        throwError('La contraseña es requerida.', 400);
+    }
+    if (typeof contraseña !== 'string' || contraseña.trim() === '') {
+        throwError('La contraseña no puede estar vacía.', 400);
+    }
+
+    const data = await svc.loginAsync({ email, contraseña });
+    res.status(200).json(data);
 });
 
 // GET AUTHENTICATED USER
@@ -68,152 +57,100 @@ router.get('/me', authMiddleware, (req, res) => {
 
 // GET BY ID (admin o el propio usuario)
 router.get('/:id', authMiddleware, async (req, res) => {
-    try {
-        const id = parseInt(req.params.id);
-        if (isNaN(id)) {
-            return res.status(400).send('El ID proporcionado no es válido.');
-        }
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) throwError('El ID proporcionado no es válido.', 400);
 
-        const rol = Number(req.usuario.id_rol);
-        const esAdmin = rol === 1;
-        const esPropio = Number(req.usuario.id) === id;
-        if (!esAdmin && !esPropio) {
-            return res.status(403).send('No tiene permisos para ver este usuario.');
-        }
+    const rol = Number(req.usuario.id_rol);
+    const esAdmin = rol === 1;
+    const esPropio = Number(req.usuario.id) === id;
+    if (!esAdmin && !esPropio) throwError('No tiene permisos para ver este usuario.', 403);
 
-        const data = await svc.getByIdAsync(id);
-        data != null ? res.status(200).json(data) : res.status(404).send('No encontrado.');
-    } catch (e) { 
-        console.error(`Error en GET /usuario/${req.params.id}:`, e.message);
-        res.status(500).send(`Error: ${e.message}`); 
-    }
+    const data = await svc.getByIdAsync(id);
+    if (!data) throwError('No encontrado.', 404);
+    res.status(200).json(data);
 });
 
 // CREATE (POST) - solo admin
 router.post('', authMiddleware, requireAdmin, async (req, res) => {
-    try {
-        const { id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa, id_garage, activo } = req.body;
-        const rolNumerico = parseInt(id_rol, 10);
-        const esGarajista = rolNumerico === 3;
+    const { id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa, id_garage, activo } = req.body;
+    const rolNumerico = parseInt(id_rol, 10);
+    const esGarajista = rolNumerico === 3;
 
-        // 1. Validaciones básicas de los datos de entrada
-        if (!isValidString(nombre)) return res.status(400).send('El nombre es requerido.');
-        if (!isValidString(apellido)) return res.status(400).send('El apellido es requerido.');
-        if (!isValidEmail(email)) return res.status(400).send('El email no tiene un formato válido.');
-        if (!isValidPassword(contraseña)) return res.status(400).send('La contraseña debe tener al menos 6 caracteres.');
-        if (!isValidId(id_rol)) return res.status(400).send('El id_rol es requerido y debe ser un número válido.');
+    if (!isValidString(nombre)) throwError('El nombre es requerido.', 400);
+    if (!isValidString(apellido)) throwError('El apellido es requerido.', 400);
+    if (!isValidEmail(email)) throwError('El email no tiene un formato válido.', 400);
+    if (!isValidPassword(contraseña)) throwError('La contraseña debe tener al menos 8 caracteres, mayúsculas, minúsculas y números.', 400);
+    if (!isValidId(id_rol)) throwError('El id_rol es requerido y debe ser un número válido.', 400);
 
-        if (esGarajista) {
-            if (id_sede !== undefined && id_sede !== null && !isValidId(id_sede)) {
-                return res.status(400).send('El id_sede debe ser nulo o un número válido para el rol garajista.');
-            }
-            if (!isValidId(id_garage)) {
-                return res.status(400).send('El id_garage es requerido para el rol garajista y debe ser un número válido.');
-            }
-        } else {
-            if (!isValidId(id_sede)) return res.status(400).send('El id_sede es requerido y debe ser un número válido.');
+    if (esGarajista) {
+        if (id_sede !== undefined && id_sede !== null && !isValidId(id_sede)) {
+            throwError('El id_sede debe ser nulo o un número válido para el rol garajista.', 400);
         }
-
-        if (!isValidId(id_empresa)) return res.status(400).send('El id_empresa es requerido y debe ser un número válido.');
-        if (telefono && !isValidPhone(telefono)) return res.status(400).send('El teléfono debe contener solo dígitos (mínimo 7).');
-        if (id_garage !== undefined && id_garage !== null && !isValidId(id_garage)) return res.status(400).send('El id_garage debe ser un número válido.');
-
-        const data = await svc.createAsync(req.body);
-        data != null ? res.status(201).json(data) : res.status(500).send('Error interno al crear el usuario.');
-    } catch (e) { 
-        console.error("Error en POST /usuario:", e.message);
-        const status = e.statusCode || 500;
-        res.status(status).send(`Error: ${e.message}`); 
+        if (!isValidId(id_garage)) {
+            throwError('El id_garage es requerido para el rol garajista y debe ser un número válido.', 400);
+        }
+    } else {
+        if (!isValidId(id_sede)) throwError('El id_sede es requerido y debe ser un número válido.', 400);
     }
+
+    if (!isValidId(id_empresa)) throwError('El id_empresa es requerido y debe ser un número válido.', 400);
+    if (telefono && !isValidPhone(telefono)) throwError('El teléfono debe contener solo dígitos (mínimo 7).', 400);
+    if (id_garage !== undefined && id_garage !== null && !isValidId(id_garage)) throwError('El id_garage debe ser un número válido.', 400);
+
+    const data = await svc.createAsync(req.body);
+    if (!data) throwError('Error interno al crear el usuario.', 500);
+    res.status(201).json(data);
 });
 
 // UPDATE (PUT) - admin o el propio usuario
 router.put('/:id', authMiddleware, async (req, res) => {
-    try {
-        const id = req.params.id;
-        
-        // 1. Validar el ID de la URL
-        if (!isValidId(id)) {
-            return res.status(400).send('El ID proporcionado no es válido.');
-        }
+    const id = req.params.id;
 
-        const rol = Number(req.usuario.id_rol);
-        const esAdmin = rol === 1;
-        const esPropio = Number(req.usuario.id) === Number(id);
-        if (!esAdmin && !esPropio) {
-            return res.status(403).send('No tiene permisos para modificar este usuario.');
-        }
+    if (!isValidId(id)) throwError('El ID proporcionado no es válido.', 400);
 
-        // 2. Validaciones básicas del body
-        const { id_rol, id_sede, id_empresa, email, telefono, contraseña } = req.body;
-        if (id_rol && !isVtealidId(String(id_rol))) return res.status(400).send('El id_rol debe ser un número válido.');
-        if (id_sede && !isValidId(String(id_sede))) return res.status(400).send('El id_sede debe ser un número válido.');
-        if (id_empresa && !isValidId(String(id_empresa))) return res.status(400).send('El id_empresa debe ser un número válido.');
-        if (telefono && !isValidPhone(telefono)) return res.status(400).send('El teléfono debe contener solo dígitos (mínimo 7).');
-        if (email && !isValidEmail(email)) return res.status(400).send('El email no tiene un formato válido.');
-        if (contraseña && !isValidPassword(contraseña)) return res.status(400).send('La contraseña debe tener al menos 6 caracteres.');
+    const rol = Number(req.usuario.id_rol);
+    const esAdmin = rol === 1;
+    const esPropio = Number(req.usuario.id) === Number(id);
+    if (!esAdmin && !esPropio) throwError('No tiene permisos para modificar este usuario.', 403);
 
-        const data = await svc.updateAsync(parseInt(id, 10), req.body);
+    const { id_rol, id_sede, id_empresa, email, telefono, contraseña } = req.body;
+    if (id_rol && !isValidId(String(id_rol))) throwError('El id_rol debe ser un número válido.', 400);
+    if (id_sede && !isValidId(String(id_sede))) throwError('El id_sede debe ser un número válido.', 400);
+    if (id_empresa && !isValidId(String(id_empresa))) throwError('El id_empresa debe ser un número válido.', 400);
+    if (telefono && !isValidPhone(telefono)) throwError('El teléfono debe contener solo dígitos (mínimo 7).', 400);
+    if (email && !isValidEmail(email)) throwError('El email no tiene un formato válido.', 400);
+    if (contraseña && !isValidPassword(contraseña)) throwError('La contraseña debe tener al menos 8 caracteres, mayúsculas, minúsculas y números.', 400);
 
-        if (data !== null) {
-            res.status(200).json(data);
-        } else {
-            res.status(404).send('No encontrado: El usuario con ese ID no existe.');
-        }
-    } catch (e) {
-        console.error(`Error en PUT /usuario/${req.params.id}:`, e.message);
-        const status = e.statusCode || 500;
-        res.status(status).send(`Error: ${e.message}`);
-    }
+    const data = await svc.updateAsync(parseInt(id, 10), req.body);
+    if (!data) throwError('No encontrado: El usuario con ese ID no existe.', 404);
+    res.status(200).json(data);
 });
 
 // UPDATE ESTADO (PATCH) - solo admin
 router.patch('/:id/estado', authMiddleware, requireAdmin, async (req, res) => {
-    try {
-        const id = req.params.id;
-        const { activo } = req.body;
+    const id = req.params.id;
+    const { activo } = req.body;
 
-        // 1. Validar el ID de la URL
-        if (!isValidId(id)) {
-            return res.status(400).send('El ID proporcionado no es válido.');
-        }
+    if (!isValidId(id)) throwError('El ID proporcionado no es válido.', 400);
 
-        // 2. Validar que venga el campo "activo" y sea un booleano
-        if (activo === undefined || typeof activo !== 'boolean') {
-            return res.status(400).send('El campo "activo" es requerido y debe ser un valor booleano (true/false).');
-        }
-
-        const data = await svc.updateEstadoAsync(parseInt(id, 10), activo);
-
-        if (data !== null) {
-            res.status(200).json(data);
-        } else {
-            res.status(404).send('No encontrado: El usuario con ese ID no existe.');
-        }
-    } catch (e) {
-        console.error(`Error en PATCH /usuario/${req.params.id}/estado:`, e.message);
-        const status = e.statusCode || 500;
-        res.status(status).send(`Error: ${e.message}`);
+    if (activo === undefined || typeof activo !== 'boolean') {
+        throwError('El campo "activo" es requerido y debe ser un valor booleano (true/false).', 400);
     }
+
+    const data = await svc.updateEstadoAsync(parseInt(id, 10), activo);
+    if (!data) throwError('No encontrado: El usuario con ese ID no existe.', 404);
+    res.status(200).json(data);
 });
 
 // DELETE - solo admin
 router.delete('/:id', authMiddleware, requireAdmin, async (req, res) => {
-    try {
-        const id = req.params.id;
-        
-        // 1. Validar el ID
-        if (!isValidId(id)) {
-            return res.status(400).send('El ID proporcionado no es válido.');
-        }
+    const id = req.params.id;
 
-        const ok = await svc.deleteAsync(parseInt(id, 10));
-        ok ? res.status(200).send('Usuario eliminado exitosamente.') : res.status(404).send('No encontrado: El usuario con ese ID no existe.');
-    } catch (e) { 
-        console.error(`Error en DELETE /usuario/${req.params.id}:`, e.message);
-        const status = e.statusCode || 500;
-        res.status(status).send(`Error: ${e.message}`); 
-    }
+    if (!isValidId(id)) throwError('El ID proporcionado no es válido.', 400);
+
+    const ok = await svc.deleteAsync(parseInt(id, 10));
+    if (!ok) throwError('No encontrado: El usuario con ese ID no existe.', 404);
+    res.status(200).json({ message: 'Usuario eliminado exitosamente.' });
 });
 
 export default router;

@@ -1,88 +1,62 @@
-// marcaController.js
 import { Router } from 'express';
 import MarcaService from './../services/marcaService.js';
 import { isValidId, isValidString } from '../helpers/validatorHelper.js';
 
 const router = Router();
 const svc = new MarcaService();
+
+function throwError(message, statusCode) {
+    const error = new Error(message);
+    error.statusCode = statusCode;
+    throw error;
+}
+
 // GET ALL
 router.get('', async (req, res) => {
-    try {
-        const data = await svc.getAllAsync();
-        data != null ? res.status(200).json(data) : res.status(500).send('Error interno.');
-    } catch (e) { 
-        console.error("Error en GET /marca:", e.message);
-        res.status(500).send(`Error: ${e.message}`); 
-    }
+    const data = await svc.getAllAsync();
+    if (!data) throwError('Error interno del servidor', 500);
+    res.status(200).json(data);
 });
 
 // GET BY ID
 router.get('/:id', async (req, res) => {
-    try {
-        const id = parseInt(req.params.id);
-        if (isNaN(id)) {
-            return res.status(400).send('El ID proporcionado no es válido.');
-        }
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) throwError('El ID proporcionado no es válido.', 400);
 
-        const data = await svc.getByIdAsync(id);
-        data != null ? res.status(200).json(data) : res.status(404).send('No encontrado.');
-    } catch (e) { 
-        console.error(`Error en GET /marca/${req.params.id}:`, e.message);
-        res.status(500).send(`Error: ${e.message}`); 
-    }
+    const data = await svc.getByIdAsync(id);
+    if (!data) throwError('No encontrado.', 404);
+    res.status(200).json(data);
 });
 
 // CREATE (POST)
 router.post('', async (req, res) => {
-    try {
-        const { nombre } = req.body;
-        if (!isValidString(nombre)) return res.status(400).send('El nombre es requerido.');
+    const { nombre } = req.body;
+    if (!isValidString(nombre)) throwError('El nombre es requerido.', 400);
 
-        const data = await svc.createAsync(req.body);
-        data != null ? res.status(201).json(data) : res.status(500).send('Error interno al crear la marca.');
-    } catch (e) { 
-        console.error("Error en POST /marca:", e.message);
-        const status = e.statusCode || 500;
-        res.status(status).send(`Error: ${e.message}`); 
-    }
+    const data = await svc.createAsync(req.body);
+    if (!data) throwError('Error interno al crear la marca.', 500);
+    res.status(201).json(data);
 });
 
 // UPDATE (PUT)
 router.put('/:id', async (req, res) => {
-    try {
-        if (!isValidId(req.params.id)) return res.status(400).send('El ID proporcionado no es válido.');
-        const { nombre } = req.body;
-        if (nombre !== undefined && !isValidString(nombre)) return res.status(400).send('El nombre no puede estar vacío.');
+    if (!isValidId(req.params.id)) throwError('El ID proporcionado no es válido.', 400);
+    const { nombre } = req.body;
+    if (nombre !== undefined && !isValidString(nombre)) throwError('El nombre no puede estar vacío.', 400);
 
-        const data = await svc.updateAsync(parseInt(req.params.id, 10), req.body);
-
-        if (data !== null) {
-            res.status(200).json(data);
-        } else {
-            res.status(404).send('No encontrado: La marca con ese ID no existe.');
-        }
-    } catch (e) {
-        console.error(`Error en PUT /marca/${req.params.id}:`, e.message);
-        const status = e.statusCode || 500;
-        res.status(status).send(`Error: ${e.message}`);
-    }
+    const data = await svc.updateAsync(parseInt(req.params.id, 10), req.body);
+    if (!data) throwError('No encontrado: La marca con ese ID no existe.', 404);
+    res.status(200).json(data);
 });
 
 // DELETE
 router.delete('/:id', async (req, res) => {
-    try {
-        const id = parseInt(req.params.id);
-        
-        if (isNaN(id)) {
-            return res.status(400).send('El ID proporcionado no es válido.');
-        }
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) throwError('El ID proporcionado no es válido.', 400);
 
-        const ok = await svc.deleteAsync(id);
-        ok ? res.status(200).send('Eliminado exitosamente.') : res.status(404).send('No encontrado: La marca con ese ID no existe.');
-    } catch (e) { 
-        console.error(`Error en DELETE /marca/${req.params.id}:`, e.message);
-        res.status(500).send(`Error: ${e.message}`); 
-    }
+    const ok = await svc.deleteAsync(id);
+    if (!ok) throwError('No encontrado: La marca con ese ID no existe.', 404);
+    res.status(200).json({ message: 'Eliminado exitosamente.' });
 });
 
 export default router;
