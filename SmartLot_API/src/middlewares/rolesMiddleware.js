@@ -14,14 +14,14 @@
 const requireRole = (...rolesPermitidos) => {
     return (req, res, next) => {
         if (!req.usuario) {
-            return res.status(401).json({ message: 'No autenticado.' });
+            return res.status(401).json({ error: true, message: 'No autenticado.', statusCode: 401 });
         }
 
         const rol = Number(req.usuario.id_rol);
 
         if (!Number.isInteger(rol) || !rolesPermitidos.includes(rol)) {
             return res.status(403).json({
-                message: 'No tiene permisos para realizar esta accion.'
+                error: true, message: 'No tiene permisos para realizar esta accion.', statusCode: 403
             });
         }
 

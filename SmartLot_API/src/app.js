@@ -1,8 +1,9 @@
 import 'dotenv/config'
-import express 	from "express";	// hacer npm i express
-import cors 	from "cors";	// hacer npm i cors
+import express 	from "express";
+import cors 	from "cors";
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 
-// 
 import EmpresaController   from "./controllers/empresaController.js"
 import GarageController    from "./controllers/garageController.js"
 import MarcaController     from "./controllers/marcaController.js"
@@ -13,15 +14,16 @@ import SedeController      from "./controllers/sedeController.js"
 import UsuarioController   from "./controllers/usuarioController.js"
 import VehiculoController  from "./controllers/vehiculoController.js"
 import authMiddleware      from "./middlewares/authMiddleware.js"
+import errorHandler       from "./middlewares/errorHandler.js"
 
 const app  = express();
-const port = process.env.PORT || 3000;  // si no esta definido en el archivo .env uso el 3000.
+const port = process.env.PORT || 3000;
 
-// Agrego los Middlewares
-app.use(cors());         // Middleware de CORS
-app.use(express.json()); // Middleware para parsear y comprender JSON
+app.use(helmet());
+app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:3000', credentials: true }));
+app.use(cookieParser());
+app.use(express.json({ limit: '10kb' }));
 
-// Endpoints (todos los Routers)
 app.use("/api/empresa", authMiddleware, EmpresaController);
 app.use("/api/garage", authMiddleware, GarageController);
 app.use("/api/marca", authMiddleware, MarcaController);
@@ -31,10 +33,10 @@ app.use("/api/rol", authMiddleware, RolController);
 app.use("/api/sede", authMiddleware, SedeController);
 app.use("/api/usuario", UsuarioController);
 app.use("/api/vehiculo", authMiddleware, VehiculoController);
-//
-// Inicio el Server y lo pongo a escuchar.
-//
-app.listen(port, () => {	// Inicio el servidor WEB (escuchar)
+
+app.use(errorHandler);
+
+app.listen(port, () => {
     console.log("server.js");
     console.log(`Listening on http://localhost:${port}`)
 })

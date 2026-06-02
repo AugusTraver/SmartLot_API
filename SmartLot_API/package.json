@@ -16,9 +16,12 @@
     "@supabase/supabase-js": "^2.105.3",
     "axios": "^1.16.0",
     "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.20.0",
     "routes": "^2.1.0"
