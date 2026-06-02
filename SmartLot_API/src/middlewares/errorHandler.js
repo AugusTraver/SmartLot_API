@@ -4,6 +4,7 @@ const errorHandler = (err, req, res, next) => {
 
     if (statusCode === 500) {
         console.error('Error no manejado:', err);
+        res.clearCookie('token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
     }
 
     res.status(statusCode).json({ error: true, message, statusCode });

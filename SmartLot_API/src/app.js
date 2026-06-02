@@ -2,6 +2,7 @@ import 'dotenv/config'
 import express 	from "express";
 import cors 	from "cors";
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 
 import EmpresaController   from "./controllers/empresaController.js"
 import GarageController    from "./controllers/garageController.js"
@@ -19,7 +20,8 @@ const app  = express();
 const port = process.env.PORT || 3000;
 
 app.use(helmet());
-app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:3000' }));
+app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:3000', credentials: true }));
+app.use(cookieParser());
 app.use(express.json({ limit: '10kb' }));
 
 app.use("/api/empresa", authMiddleware, EmpresaController);

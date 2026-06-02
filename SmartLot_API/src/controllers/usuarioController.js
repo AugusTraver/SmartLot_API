@@ -47,7 +47,25 @@ router.post('/login', authRateLimiter, async (req, res) => {
     }
 
     const data = await svc.loginAsync({ email, contraseña });
+
+    res.cookie('token', data.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 2 * 60 * 60 * 1000
+    });
+
     res.status(200).json(data);
+});
+
+// LOGOUT
+router.post('/logout', (req, res) => {
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+    });
+    res.status(200).json({ message: 'Sesion cerrada exitosamente.' });
 });
 
 // GET AUTHENTICATED USER
