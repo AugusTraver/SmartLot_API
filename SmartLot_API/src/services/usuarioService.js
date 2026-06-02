@@ -118,7 +118,7 @@ export default class UsuarioService {
             }
         }
 
-        // Hashear contraseña antes de persistir
+        // Hashear contraseña 
         if (entity.contraseña) {
             entity.contraseña = await bcrypt.hash(entity.contraseña, BCRYPT_ROUNDS);
         }
