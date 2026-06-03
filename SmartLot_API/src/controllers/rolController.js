@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import RolService from './../services/rolService.js';
 import { isValidId, isValidString } from '../helpers/validatorHelper.js';
+import { requireRole } from '../middlewares/rolesMiddleware.js';
 
 const router = Router();
 const svc = new RolService();
@@ -29,7 +30,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // CREATE (POST)
-router.post('', async (req, res) => {
+router.post('', requireRole(4), async (req, res) => {
     const { tipo_rol } = req.body;
     if (!isValidString(tipo_rol)) throwError('El tipo_rol es requerido.', 400);
 
@@ -39,7 +40,7 @@ router.post('', async (req, res) => {
 });
 
 // UPDATE (PUT)
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireRole(4), async (req, res) => {
     if (!isValidId(req.params.id)) throwError('El ID proporcionado no es válido.', 400);
     const { tipo_rol } = req.body;
     if (tipo_rol !== undefined && !isValidString(tipo_rol)) throwError('El tipo_rol no puede estar vacío.', 400);
@@ -50,7 +51,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireRole(4), async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) throwError('El ID proporcionado no es válido.', 400);
 

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import SedeService from './../services/sedeService.js';
 import { isValidId, isValidString } from '../helpers/validatorHelper.js';
+import { requireRole } from '../middlewares/rolesMiddleware.js';
 
 const router = Router();
 const svc = new SedeService();
@@ -29,7 +30,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // CREATE (POST)
-router.post('', async (req, res) => {
+router.post('', requireRole(1, 4), async (req, res) => {
     const { nombre, id_empresa } = req.body;
     if (!isValidString(nombre)) throwError('El nombre es requerido.', 400);
     if (!isValidId(String(id_empresa))) throwError('El id_empresa es requerido y debe ser un número válido.', 400);
@@ -40,7 +41,7 @@ router.post('', async (req, res) => {
 });
 
 // UPDATE (PUT)
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireRole(1, 4), async (req, res) => {
     if (!isValidId(req.params.id)) throwError('El ID proporcionado no es válido.', 400);
     const { nombre, id_empresa } = req.body;
     if (nombre !== undefined && !isValidString(nombre)) throwError('El nombre no puede estar vacío.', 400);
@@ -52,7 +53,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireRole(1, 4), async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) throwError('El ID proporcionado no es válido.', 400);
 

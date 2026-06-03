@@ -15,7 +15,12 @@ export default class VehiculoService {
     
     getByIdAsync = async (id) => await this.repo.getByIdAsync(id);
 
-    createAsync = async (entity) => {
+    createAsync = async (entity, requestingUser) => {
+        const rol = Number(requestingUser.id_rol);
+        if (rol !== 1 && rol !== 4) {
+            entity.id_usuario = requestingUser.id;
+        }
+
         await this._validarRelacionesAsync(entity);
 
         // Validar patente única
@@ -31,7 +36,12 @@ export default class VehiculoService {
         return await this.repo.createAsync(entity);
     }
 
-    updateAsync = async (id, entity) => {
+    updateAsync = async (id, entity, requestingUser) => {
+        const rol = Number(requestingUser.id_rol);
+        if (rol !== 1 && rol !== 4) {
+            delete entity.id_usuario;
+        }
+
         await this._validarRelacionesAsync(entity);
 
         // Validar patente única (excluyendo al vehículo actual)

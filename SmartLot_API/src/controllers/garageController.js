@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import GarageService from './../services/garageService.js';
 import { isValidId, isValidString, isValidPositiveNumber } from '../helpers/validatorHelper.js';
+import { requireRole } from '../middlewares/rolesMiddleware.js';
 
 const router = Router();
 const svc = new GarageService();
@@ -49,7 +50,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // CREATE (POST)
-router.post('', async (req, res) => {
+router.post('', requireRole(1, 4), async (req, res) => {
     const { id_sede, nombre, capacidad, estado } = req.body;
     if (!isValidString(nombre)) throwError('El nombre es requerido.', 400);
     if (!isValidId(String(id_sede))) throwError('El id_sede es requerido y debe ser un número válido.', 400);
@@ -62,7 +63,7 @@ router.post('', async (req, res) => {
 });
 
 // UPDATE (PUT)
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireRole(1, 4), async (req, res) => {
     if (!isValidId(req.params.id)) throwError('El ID proporcionado no es válido.', 400);
     const { id_sede, nombre, capacidad, estado } = req.body;
     if (nombre !== undefined && !isValidString(nombre)) throwError('El nombre no puede estar vacío.', 400);
@@ -76,7 +77,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireRole(1, 4), async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) throwError('El ID proporcionado no es válido.', 400);
 
@@ -86,7 +87,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // POST INGRESO VEHICULO SIN RESERVA
-router.post('/:id/ingreso-no-reserva', async (req, res) => {
+router.post('/:id/ingreso-no-reserva', requireRole(1, 3, 4), async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) throwError('El ID proporcionado no es válido.', 400);
 
@@ -96,7 +97,7 @@ router.post('/:id/ingreso-no-reserva', async (req, res) => {
 });
 
 // POST EGRESO VEHICULO SIN RESERVA
-router.post('/:id/egreso-no-reserva', async (req, res) => {
+router.post('/:id/egreso-no-reserva', requireRole(1, 3, 4), async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) throwError('El ID proporcionado no es válido.', 400);
 

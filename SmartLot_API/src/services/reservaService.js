@@ -25,7 +25,12 @@ export default class ReservaService {
         return reservas !== null && reservas.length > 0;
     }
 
-    createAsync = async (entity) => {
+    createAsync = async (entity, requestingUser) => {
+        const rol = Number(requestingUser.id_rol);
+        if (rol !== 1 && rol !== 4) {
+            entity.id_usuario = requestingUser.id;
+        }
+
         this._validarCamposObligatorios(entity);
         await this._validarRelacionesAsync(entity);
         this._validarFechasAsync(entity);
@@ -37,7 +42,12 @@ export default class ReservaService {
         return await this.repo.createAsync(entity);
     }
 
-    updateAsync = async (id, entity) => {
+    updateAsync = async (id, entity, requestingUser) => {
+        const rol = Number(requestingUser.id_rol);
+        if (rol !== 1 && rol !== 4) {
+            delete entity.id_usuario;
+        }
+
         const current = await this.repo.getByIdAsync(id);
         if (!current) {
             const error = new Error(`La reserva con ID ${id} no existe.`);

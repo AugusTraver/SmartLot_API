@@ -155,28 +155,39 @@ export default class UsuarioService {
         }
     }
 
-    updateAsync = async (id, entity) => {
-        await this._validarRelacionesAsync(entity);
+    updateAsync = async (id, entity, requestingUser) => {
+        const current = await this.repo.getByIdAsync(id);
+        if (!current) {
+            const error = new Error(`El usuario con ID ${id} no existe.`);
+            error.statusCode = 404;
+            throw error;
+        }
+
+        this._aplicarReglasDeActualizacion(entity, requestingUser, id);
+
+        // Merge: preservar valores actuales para campos no enviados
+        const merged = { ...current, ...entity };
+
+        // Preservar contraseña existente si no se envía una nueva
+        if (entity.contraseña) {
+            merged.contraseña = await bcrypt.hash(entity.contraseña, BCRYPT_ROUNDS);
+        } else {
+            merged.contraseña = current.contraseña;
+        }
+
+        await this._validarRelacionesAsync(merged);
 
         // Validar email único (excluyendo al usuario actual)
-        if (entity.email) {
-            const existing = await this.repo.getByEmailAsync(entity.email);
+        if (merged.email) {
+            const existing = await this.repo.getByEmailAsync(merged.email);
             if (existing && existing.id !== id) {
-                const error = new Error(`Ya existe un usuario con el email ${entity.email}.`);
+                const error = new Error(`Ya existe un usuario con el email ${merged.email}.`);
                 error.statusCode = 400;
                 throw error;
             }
         }
 
-        // Si llega una contraseña nueva, hashearla.
-        // Si no llega, no tocar la columna (preservar el hash actual).
-        if (entity.contraseña) {
-            entity.contraseña = await bcrypt.hash(entity.contraseña, BCRYPT_ROUNDS);
-        } else {
-            delete entity.contraseña;
-        }
-
-        return await this.repo.updateAsync(id, entity);
+        return await this.repo.updateAsync(id, merged);
     }
 
     updateEstadoAsync = async (id, activo) => {
@@ -262,6 +273,43 @@ export default class UsuarioService {
             const error = new Error(`No se puede ${accion} el usuario con ID ${id_usuario} porque tiene reservas asociadas.`);
             error.statusCode = 400;
             throw error;
+        }
+    }
+
+    _aplicarReglasDeActualizacion = (entity, requestingUser, targetId) => {
+        const rol = Number(requestingUser.id_rol);
+        const esAdmin = rol === 1;
+        const esSmartlot = rol === 4;
+        const esAdminOrSmartlot = esAdmin || esSmartlot;
+        const esPropio = Number(requestingUser.id) === Number(targetId);
+
+        if (!esAdminOrSmartlot && !esPropio) {
+            const error = new Error('No tiene permisos para modificar este usuario.');
+            error.statusCode = 403;
+            throw error;
+        }
+
+        if (esPropio) {
+            delete entity.id_rol;
+        }
+
+        if (!esPropio && esAdmin && entity.id_rol !== undefined) {
+            const targetRol = Number(entity.id_rol);
+            if (![1, 2, 3].includes(targetRol)) {
+                const error = new Error('Solo puede asignar los roles admin, empleado o garagista.');
+                error.statusCode = 400;
+                throw error;
+            }
+        }
+
+        if (!esPropio && esAdmin && !esSmartlot) {
+            delete entity.id_empresa;
+        }
+
+        if (!esAdminOrSmartlot) {
+            delete entity.id_rol;
+            delete entity.activo;
+            delete entity.id_empresa;
         }
     }
 }

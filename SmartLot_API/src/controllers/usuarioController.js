@@ -2,7 +2,7 @@ import { Router } from 'express';
 import UsuarioService from './../services/usuarioService.js';
 import { isValidId, isValidEmail, isValidString, isValidPassword, isValidPhone } from '../helpers/validatorHelper.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
-import { requireRole, requireAdmin } from '../middlewares/rolesMiddleware.js';
+import { requireRole } from '../middlewares/rolesMiddleware.js';
 import authRateLimiter from '../middlewares/rateLimiterMiddleware.js';
 
 const router = Router();
@@ -14,15 +14,15 @@ function throwError(message, statusCode) {
     throw error;
 }
 
-// GET ALL (solo admin)
-router.get('', authMiddleware, requireAdmin, async (req, res) => {
+// GET ALL (admin o smartlot)
+router.get('', authMiddleware, requireRole(1, 4), async (req, res) => {
     const data = await svc.getAllAsync();
     if (!data) throwError('Error interno del servidor', 500);
     res.status(200).json(data);
 });
 
-// GET BY GARAGE ID (admin o garagista)
-router.get('/garage/:id_garage', authMiddleware, requireRole(1, 3), async (req, res) => {
+// GET BY GARAGE ID (admin, smartlot o garagista)
+router.get('/garage/:id_garage', authMiddleware, requireRole(1, 3, 4), async (req, res) => {
     const idGarage = parseInt(req.params.id_garage);
     if (isNaN(idGarage)) throwError('El ID de garage proporcionado no es válido.', 400);
 
@@ -73,23 +73,23 @@ router.get('/me', authMiddleware, (req, res) => {
     res.status(200).json({ usuario: req.usuario });
 });
 
-// GET BY ID (admin o el propio usuario)
+// GET BY ID (admin, smartlot o el propio usuario)
 router.get('/:id', authMiddleware, async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) throwError('El ID proporcionado no es válido.', 400);
 
     const rol = Number(req.usuario.id_rol);
-    const esAdmin = rol === 1;
+    const esAdminOSmartlot = rol === 1 || rol === 4;
     const esPropio = Number(req.usuario.id) === id;
-    if (!esAdmin && !esPropio) throwError('No tiene permisos para ver este usuario.', 403);
+    if (!esAdminOSmartlot && !esPropio) throwError('No tiene permisos para ver este usuario.', 403);
 
     const data = await svc.getByIdAsync(id);
     if (!data) throwError('No encontrado.', 404);
     res.status(200).json(data);
 });
 
-// CREATE (POST) - solo admin
-router.post('', authMiddleware, requireAdmin, async (req, res) => {
+// CREATE (POST) - admin o smartlot
+router.post('', authMiddleware, requireRole(1, 4), async (req, res) => {
     const { id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa, id_garage, activo } = req.body;
     const rolNumerico = parseInt(id_rol, 10);
     const esGarajista = rolNumerico === 3;
@@ -120,32 +120,26 @@ router.post('', authMiddleware, requireAdmin, async (req, res) => {
     res.status(201).json(data);
 });
 
-// UPDATE (PUT) - admin o el propio usuario
-router.put('/:id', authMiddleware, async (req, res) => {
+// UPDATE (PUT) - admin, smartlot o el propio usuario
+router.put('/:id', authMiddleware, requireRole(1, 2, 3, 4), async (req, res) => {
     const id = req.params.id;
 
     if (!isValidId(id)) throwError('El ID proporcionado no es válido.', 400);
 
-    const rol = Number(req.usuario.id_rol);
-    const esAdmin = rol === 1;
-    const esPropio = Number(req.usuario.id) === Number(id);
-    if (!esAdmin && !esPropio) throwError('No tiene permisos para modificar este usuario.', 403);
-
     const { id_rol, id_sede, id_empresa, email, telefono, contraseña } = req.body;
-    if (id_rol && !isValidId(String(id_rol))) throwError('El id_rol debe ser un número válido.', 400);
     if (id_sede && !isValidId(String(id_sede))) throwError('El id_sede debe ser un número válido.', 400);
-    if (id_empresa && !isValidId(String(id_empresa))) throwError('El id_empresa debe ser un número válido.', 400);
+    if (id_empresa && !isValidId(String(id_empresa))) throwError('La empresa debe ser un número válido.', 400);
     if (telefono && !isValidPhone(telefono)) throwError('El teléfono debe contener solo dígitos (mínimo 7).', 400);
     if (email && !isValidEmail(email)) throwError('El email no tiene un formato válido.', 400);
     if (contraseña && !isValidPassword(contraseña)) throwError('La contraseña debe tener al menos 8 caracteres, mayúsculas, minúsculas y números.', 400);
 
-    const data = await svc.updateAsync(parseInt(id, 10), req.body);
+    const data = await svc.updateAsync(parseInt(id, 10), req.body, req.usuario);
     if (!data) throwError('No encontrado: El usuario con ese ID no existe.', 404);
     res.status(200).json(data);
 });
 
-// UPDATE ESTADO (PATCH) - solo admin
-router.patch('/:id/estado', authMiddleware, requireAdmin, async (req, res) => {
+// UPDATE ESTADO (PATCH) - admin o smartlot
+router.patch('/:id/estado', authMiddleware, requireRole(1, 4), async (req, res) => {
     const id = req.params.id;
     const { activo } = req.body;
 
@@ -160,8 +154,8 @@ router.patch('/:id/estado', authMiddleware, requireAdmin, async (req, res) => {
     res.status(200).json(data);
 });
 
-// DELETE - solo admin
-router.delete('/:id', authMiddleware, requireAdmin, async (req, res) => {
+// DELETE - admin o smartlot
+router.delete('/:id', authMiddleware, requireRole(1, 4), async (req, res) => {
     const id = req.params.id;
 
     if (!isValidId(id)) throwError('El ID proporcionado no es válido.', 400);
