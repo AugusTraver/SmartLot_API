@@ -1,12 +1,12 @@
 // sedeService.js
 import SedeRepository from '../repositories/sedeRepository.js';
-import EmpresaRepository from '../repositories/empresaRepository.js';
+import EmpresaService from './empresaService.js';
 
 export default class SedeService {
     constructor() {
         console.log('Estoy en: SedeService.constructor()');
         this.repo = new SedeRepository();
-        this.empresaRepo = new EmpresaRepository();
+        this.empresaService = new EmpresaService();
     }
 
     getAllAsync = async () => await this.repo.getAllAsync();
@@ -31,7 +31,7 @@ export default class SedeService {
      */
     _validarRelacionesAsync = async (entity) => {
         if (entity.id_empresa) {
-            const empresa = await this.empresaRepo.getByIdAsync(entity.id_empresa);
+            const empresa = await this.empresaService.getByIdAsync(entity.id_empresa);
             if (!empresa) {
                 const error = new Error(`La empresa con ID ${entity.id_empresa} no existe.`);
                 error.statusCode = 400;

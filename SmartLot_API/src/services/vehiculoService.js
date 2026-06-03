@@ -1,14 +1,14 @@
 // vehiculoService.js
 import VehiculoRepository from '../repositories/vehiculoRepository.js';
-import UsuarioRepository from '../repositories/usuarioRepository.js';
-import ModeloRepository from '../repositories/modeloRepository.js';
+import UsuarioService from './usuarioService.js';
+import ModeloService from './modeloService.js';
 
 export default class VehiculoService {
     constructor() {
         console.log('Estoy en: VehiculoService.constructor()');
         this.repo = new VehiculoRepository();
-        this.usuarioRepo = new UsuarioRepository();
-        this.modeloRepo = new ModeloRepository();
+        this.usuarioService = new UsuarioService();
+        this.modeloService = new ModeloService();
     }
 
     getAllAsync = async () => await this.repo.getAllAsync();
@@ -68,7 +68,7 @@ export default class VehiculoService {
 
         // Validar que el usuario exista
         if (entity.id_usuario) {
-            const usuario = await this.usuarioRepo.getByIdAsync(entity.id_usuario);
+            const usuario = await this.usuarioService.getByIdAsync(entity.id_usuario);
             if (!usuario) {
                 errores.push(`El usuario con ID ${entity.id_usuario} no existe.`);
             }
@@ -76,7 +76,7 @@ export default class VehiculoService {
 
         // Validar que el modelo exista
         if (entity.id_modelo) {
-            const modelo = await this.modeloRepo.getByIdAsync(entity.id_modelo);
+            const modelo = await this.modeloService.getByIdAsync(entity.id_modelo);
             if (!modelo) {
                 errores.push(`El modelo con ID ${entity.id_modelo} no existe.`);
             }

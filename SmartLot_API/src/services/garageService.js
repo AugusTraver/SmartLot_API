@@ -1,17 +1,23 @@
 // garageService.js
 import GarageRepository from '../repositories/garageRepository.js';
-import SedeRepository from '../repositories/sedeRepository.js';
+import SedeService from './sedeService.js';
 
 export default class GarageService {
     constructor() {
         console.log('Estoy en: GarageService.constructor()');
         this.repo = new GarageRepository();
-        this.sedeRepo = new SedeRepository();
+        this.sedeService = new SedeService();
     }
 
     getAllAsync = async () => await this.repo.getAllAsync();
     
     getByIdAsync = async (id) => await this.repo.getByIdAsync(id);
+
+    getByIdForUpdateWithClientAsync = async (id, client) => await this.repo.getByIdForUpdateWithClientAsync(id, client);
+
+    incrementOcupacionReservasWithClientAsync = async (id, client) => await this.repo.incrementOcupacionReservasWithClientAsync(id, client);
+
+    decrementOcupacionReservasWithClientAsync = async (id, client) => await this.repo.decrementOcupacionReservasWithClientAsync(id, client);
 
     getOcupacionReservaAsync = async (id) => await this.repo.getOcupacionReservaAsync(id);
 
@@ -78,7 +84,7 @@ export default class GarageService {
     _validarRelacionesAsync = async (entity) => {
         // Validar que la sede exista
         if (entity.id_sede) {
-            const sede = await this.sedeRepo.getByIdAsync(entity.id_sede);
+            const sede = await this.sedeService.getByIdAsync(entity.id_sede);
             if (!sede) {
                 const error = new Error(`La sede con ID ${entity.id_sede} no existe.`);
                 error.statusCode = 400;

@@ -1,12 +1,11 @@
 // usuarioService.js
 import pool from '../database/db.js';
 import UsuarioRepository from '../repositories/usuarioRepository.js';
-import SedeRepository from '../repositories/sedeRepository.js';
-import EmpresaRepository from '../repositories/empresaRepository.js';
-import RolRepository from '../repositories/rolRepository.js';
-import GarageRepository from '../repositories/garageRepository.js';
-import UsuarioGarageRepository from '../repositories/usuarioGarageRepository.js';
-import ReservaRepository from '../repositories/reservaRepository.js';
+import SedeService from './sedeService.js';
+import EmpresaService from './empresaService.js';
+import RolService from './rolService.js';
+import GarageService from './garageService.js';
+import UsuarioGarageService from './usuarioGarageService.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
@@ -16,12 +15,20 @@ export default class UsuarioService {
     constructor() {
         console.log('Estoy en: UsuarioService.constructor()');
         this.repo = new UsuarioRepository();
-        this.sedeRepo = new SedeRepository();
-        this.empresaRepo = new EmpresaRepository();
-        this.rolRepo = new RolRepository();
-        this.garageRepo = new GarageRepository();
-        this.usuarioGarageRepo = new UsuarioGarageRepository();
-        this.reservaRepo = new ReservaRepository();
+        this.sedeService = new SedeService();
+        this.empresaService = new EmpresaService();
+        this.rolService = new RolService();
+        this.garageService = new GarageService();
+        this.usuarioGarageService = new UsuarioGarageService();
+    }
+
+    // Lazy-loaded to avoid circular dependency with ReservaService
+    _getReservaService = async () => {
+        if (!this._reservaServiceInstance) {
+            const { default: ReservaService } = await import('./reservaService.js');
+            this._reservaServiceInstance = new ReservaService();
+        }
+        return this._reservaServiceInstance;
     }
 
     getAllAsync = async () => await this.repo.getAllAsync();
@@ -82,20 +89,20 @@ export default class UsuarioService {
 
     getGaragistasByGarageIdAsync = async (id_garage) => {
         // Validar que el garage exista
-        const garage = await this.garageRepo.getByIdAsync(id_garage);
+        const garage = await this.garageService.getByIdAsync(id_garage);
         if (!garage) {
             const error = new Error(`El garage con ID ${id_garage} no existe.`);
             error.statusCode = 404;
             throw error;
         }
-        return await this.usuarioGarageRepo.getUsuariosByGarageIdAsync(id_garage);
+        return await this.usuarioGarageService.getUsuariosByGarageIdAsync(id_garage);
     }
 
     createAsync = async (entity) => {
         await this._validarRelacionesAsync(entity);
 
         // Obtener el rol para verificar si es "garagista"
-        const rol = await this.rolRepo.getByIdAsync(entity.id_rol);
+        const rol = await this.rolService.getByIdAsync(entity.id_rol);
         const esGaragista = rol && rol.tipo_rol && rol.tipo_rol.toLowerCase() === 'garagista';
 
         // Validaciones si es "garagista"
@@ -105,7 +112,7 @@ export default class UsuarioService {
                 error.statusCode = 400;
                 throw error;
             }
-            const garage = await this.garageRepo.getByIdAsync(entity.id_garage);
+            const garage = await this.garageService.getByIdAsync(entity.id_garage);
             if (!garage) {
                 const error = new Error(`El garage con ID ${entity.id_garage} no existe.`);
                 error.statusCode = 400;
@@ -140,7 +147,7 @@ export default class UsuarioService {
                 }
 
                 // Crear relación usuario_garage con el cliente de la transacción
-                await this.usuarioGarageRepo.createWithClientAsync(nuevoUsuario.id, entity.id_garage, client);
+                await this.usuarioGarageService.createWithClientAsync(nuevoUsuario.id, entity.id_garage, client);
 
                 await client.query('COMMIT');
                 return nuevoUsuario;
@@ -229,7 +236,7 @@ export default class UsuarioService {
 
         // Validar que el rol exista
         if (entity.id_rol) {
-            const rol = await this.rolRepo.getByIdAsync(entity.id_rol);
+            const rol = await this.rolService.getByIdAsync(entity.id_rol);
             if (!rol) {
                 errores.push(`El rol con ID ${entity.id_rol} no existe.`);
             }
@@ -237,7 +244,7 @@ export default class UsuarioService {
 
         // Validar que la empresa exista
         if (entity.id_empresa) {
-            const empresa = await this.empresaRepo.getByIdAsync(entity.id_empresa);
+            const empresa = await this.empresaService.getByIdAsync(entity.id_empresa);
             if (!empresa) {
                 errores.push(`La empresa con ID ${entity.id_empresa} no existe.`);
             }
@@ -245,7 +252,7 @@ export default class UsuarioService {
 
         // Validar que la sede exista
         if (entity.id_sede) {
-            const sede = await this.sedeRepo.getByIdAsync(entity.id_sede);
+            const sede = await this.sedeService.getByIdAsync(entity.id_sede);
             if (!sede) {
                 errores.push(`La sede con ID ${entity.id_sede} no existe.`);
             }
@@ -259,7 +266,8 @@ export default class UsuarioService {
     }
 
     _validarSinReservasActivasAsync = async (id_usuario, accion) => {
-        const reservasActivas = await this.reservaRepo.getActivasByUsuarioAsync(id_usuario);
+        const reservaService = await this._getReservaService();
+        const reservasActivas = await reservaService.getActivasByUsuarioAsync(id_usuario);
         if (reservasActivas && reservasActivas.length > 0) {
             const error = new Error(`No se puede ${accion} el usuario con ID ${id_usuario} porque tiene reservas activas.`);
             error.statusCode = 400;
@@ -268,7 +276,8 @@ export default class UsuarioService {
     }
 
     _validarSinReservasAsync = async (id_usuario, accion) => {
-        const reservas = await this.reservaRepo.getByUsuarioAsync(id_usuario);
+        const reservaService = await this._getReservaService();
+        const reservas = await reservaService.getByUsuarioAsync(id_usuario);
         if (reservas && reservas.length > 0) {
             const error = new Error(`No se puede ${accion} el usuario con ID ${id_usuario} porque tiene reservas asociadas.`);
             error.statusCode = 400;

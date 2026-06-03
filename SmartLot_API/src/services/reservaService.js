@@ -1,17 +1,17 @@
 // reservaService.js
 import pool from '../database/db.js';
 import ReservaRepository from '../repositories/reservaRepository.js';
-import UsuarioRepository from '../repositories/usuarioRepository.js';
-import GarageRepository from '../repositories/garageRepository.js';
-import VehiculoRepository from '../repositories/vehiculoRepository.js';
+import UsuarioService from './usuarioService.js';
+import GarageService from './garageService.js';
+import VehiculoService from './vehiculoService.js';
 
 export default class ReservaService {
     constructor() {
         console.log('Estoy en: ReservaService.constructor()');
         this.repo = new ReservaRepository();
-        this.usuarioRepo = new UsuarioRepository();
-        this.garageRepo = new GarageRepository();
-        this.vehiculoRepo = new VehiculoRepository();
+        this.usuarioService = new UsuarioService();
+        this.garageService = new GarageService();
+        this.vehiculoService = new VehiculoService();
     }
 
     getAllAsync = async () => await this.repo.getAllAsync();
@@ -19,6 +19,8 @@ export default class ReservaService {
     getByIdAsync = async (id) => await this.repo.getByIdAsync(id);
 
     getActivasByUsuarioAsync = async (id_usuario) => await this.repo.getActivasByUsuarioAsync(id_usuario);
+
+    getByUsuarioAsync = async (id_usuario) => await this.repo.getByUsuarioAsync(id_usuario);
 
     usuarioTieneReservasActivasAsync = async (id_usuario) => {
         const reservas = await this.repo.getActivasByUsuarioAsync(id_usuario);
@@ -142,7 +144,7 @@ export default class ReservaService {
         try {
             await client.query('BEGIN');
 
-            const garage = await this.garageRepo.getByIdForUpdateWithClientAsync(reserva.id_garage, client);
+            const garage = await this.garageService.getByIdForUpdateWithClientAsync(reserva.id_garage, client);
             if (!garage) {
                 const error = new Error(`El garage con ID ${reserva.id_garage} no existe.`);
                 error.statusCode = 400;
@@ -160,7 +162,7 @@ export default class ReservaService {
                 throw error;
             }
 
-            const updatedGarage = await this.garageRepo.incrementOcupacionReservasWithClientAsync(reserva.id_garage, client);
+            const updatedGarage = await this.garageService.incrementOcupacionReservasWithClientAsync(reserva.id_garage, client);
             if (!updatedGarage) {
                 const error = new Error(`No hay capacidad de reservas disponible en el garage con ID ${reserva.id_garage}.`);
                 error.statusCode = 400;
@@ -201,7 +203,7 @@ export default class ReservaService {
         try {
             await client.query('BEGIN');
 
-            const garage = await this.garageRepo.getByIdForUpdateWithClientAsync(reserva.id_garage, client);
+            const garage = await this.garageService.getByIdForUpdateWithClientAsync(reserva.id_garage, client);
             if (!garage) {
                 const error = new Error(`El garage con ID ${reserva.id_garage} no existe.`);
                 error.statusCode = 400;
@@ -215,7 +217,7 @@ export default class ReservaService {
                 throw error;
             }
 
-            const updatedGarage = await this.garageRepo.decrementOcupacionReservasWithClientAsync(reserva.id_garage, client);
+            const updatedGarage = await this.garageService.decrementOcupacionReservasWithClientAsync(reserva.id_garage, client);
             if (!updatedGarage) {
                 const error = new Error(`La ocupacion de reservas del garage con ID ${reserva.id_garage} ya esta en cero.`);
                 error.statusCode = 400;
@@ -255,7 +257,7 @@ export default class ReservaService {
         let vehiculo = null;
 
         if (entity.id_usuario) {
-            usuario = await this.usuarioRepo.getByIdAsync(entity.id_usuario);
+            usuario = await this.usuarioService.getByIdAsync(entity.id_usuario);
             if (!usuario) {
                 errores.push(`El usuario con ID ${entity.id_usuario} no existe.`);
             } else if (usuario.activo === false) {
@@ -264,7 +266,7 @@ export default class ReservaService {
         }
 
         if (entity.id_garage) {
-            garage = await this.garageRepo.getByIdAsync(entity.id_garage);
+            garage = await this.garageService.getByIdAsync(entity.id_garage);
             if (!garage) {
                 errores.push(`El garage con ID ${entity.id_garage} no existe.`);
             } else {
@@ -277,7 +279,7 @@ export default class ReservaService {
         }
 
         if (entity.id_vehiculo) {
-            vehiculo = await this.vehiculoRepo.getByIdAsync(entity.id_vehiculo);
+            vehiculo = await this.vehiculoService.getByIdAsync(entity.id_vehiculo);
             if (!vehiculo) {
                 errores.push(`El vehiculo con ID ${entity.id_vehiculo} no existe.`);
             } else if (usuario && vehiculo.id_usuario !== usuario.id) {
@@ -346,7 +348,7 @@ export default class ReservaService {
             throw error;
         }
 
-        const garage = await this.garageRepo.getByIdAsync(entity.id_garage);
+        const garage = await this.garageService.getByIdAsync(entity.id_garage);
         if (!garage) {
             const error = new Error(`El garage con ID ${entity.id_garage} no existe.`);
             error.statusCode = 400;

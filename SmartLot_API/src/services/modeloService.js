@@ -1,12 +1,12 @@
 // modeloService.js
 import ModeloRepository from '../repositories/modeloRepository.js';
-import MarcaRepository from '../repositories/marcaRepository.js';
+import MarcaService from './marcaService.js';
 
 export default class ModeloService {
     constructor() {
         console.log('Estoy en: ModeloService.constructor()');
         this.repo = new ModeloRepository();
-        this.marcaRepo = new MarcaRepository();
+        this.marcaService = new MarcaService();
     }
 
     getAllAsync = async () => await this.repo.getAllAsync();
@@ -31,7 +31,7 @@ export default class ModeloService {
      */
     _validarRelacionesAsync = async (entity) => {
         if (entity.id_marca) {
-            const marca = await this.marcaRepo.getByIdAsync(entity.id_marca);
+            const marca = await this.marcaService.getByIdAsync(entity.id_marca);
             if (!marca) {
                 const error = new Error(`La marca con ID ${entity.id_marca} no existe.`);
                 error.statusCode = 400;
