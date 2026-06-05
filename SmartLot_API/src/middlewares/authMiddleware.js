@@ -12,8 +12,8 @@ const authMiddleware = (req, res, next) => {
         token = parts[1];
     }
 
-    if (!token && req.cookies?.token) {
-        token = req.cookies.token;
+    if (!token && req.cookies?.access_token) {
+        token = req.cookies.access_token;
     }
 
     if (!token) {
@@ -24,7 +24,8 @@ const authMiddleware = (req, res, next) => {
         req.usuario = jwt.verify(token, process.env.JWT_SECRET);
         next();
     } catch (error) {
-        res.clearCookie('token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
+        res.clearCookie('access_token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
+        res.clearCookie('refresh_token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/api/usuario/refresh' });
         return res.status(401).json({ error: true, message: 'Token invalido o expirado.', statusCode: 401 });
     }
 };

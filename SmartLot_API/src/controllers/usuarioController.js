@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import jwt from 'jsonwebtoken';
 import UsuarioService from './../services/usuarioService.js';
 import { isValidId, isValidEmail, isValidString, isValidPassword, isValidPhone } from '../helpers/validatorHelper.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
@@ -48,22 +49,90 @@ router.post('/login', authRateLimiter, async (req, res) => {
 
     const data = await svc.loginAsync({ email, contraseña });
 
-    res.cookie('token', data.token, {
+    res.cookie('access_token', data.access_token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 2 * 60 * 60 * 1000
+        maxAge: 15 * 60 * 1000
     });
 
-    res.status(200).json(data);
+    res.cookie('refresh_token', data.refresh_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/api/usuario/refresh',
+        maxAge: 30 * 24 * 60 * 60 * 1000
+    });
+
+    res.status(200).json({
+        usuario: data.usuario,
+        access_token: data.access_token,
+        token_type: 'Bearer',
+        expires_in: '15m'
+    });
+});
+
+// REFRESH TOKEN
+router.post('/refresh', authRateLimiter, async (req, res) => {
+    const refreshToken = req.cookies?.refresh_token;
+    if (!refreshToken) {
+        return res.status(401).json({ error: true, message: 'No hay refresh token.', statusCode: 401 });
+    }
+
+    try {
+        const data = await svc.refreshTokenAsync(refreshToken);
+
+        res.cookie('access_token', data.access_token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 15 * 60 * 1000
+        });
+
+        res.cookie('refresh_token', data.refresh_token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/api/usuario/refresh',
+            maxAge: 30 * 24 * 60 * 60 * 1000
+        });
+
+        res.json({
+            access_token: data.access_token,
+            token_type: 'Bearer',
+            expires_in: '15m'
+        });
+    } catch (err) {
+        res.clearCookie('access_token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
+        res.clearCookie('refresh_token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/api/usuario/refresh' });
+        throwError(err.message, err.statusCode || 401);
+    }
 });
 
 // LOGOUT
 router.post('/logout', (req, res) => {
-    res.clearCookie('token', {
+    const accessToken = req.cookies?.access_token;
+    if (accessToken) {
+        try {
+            const decoded = jwt.decode(accessToken);
+            if (decoded?.id) {
+                svc.revocarRefreshTokensAsync(decoded.id).catch(() => {});
+            }
+        } catch {
+            // Si no se puede decodificar, igual limpiamos cookies
+        }
+    }
+
+    res.clearCookie('access_token', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax'
+    });
+    res.clearCookie('refresh_token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/api/usuario/refresh'
     });
     res.status(200).json({ message: 'Sesion cerrada exitosamente.' });
 });

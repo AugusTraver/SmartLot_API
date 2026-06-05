@@ -68,23 +68,105 @@ export default class UsuarioService {
             email: usuario.email,
             id_rol: usuario.id_rol,
             id_empresa: usuario.id_empresa,
-            id_sede: usuario.id_sede
+            id_sede: usuario.id_sede,
+            token_version: usuario.token_version
         };
 
-        const token = jwt.sign(
+        const accessToken = jwt.sign(
             payload,
             process.env.JWT_SECRET,
             {
-                expiresIn: process.env.JWT_EXPIRES_IN || '2h'
+                expiresIn: process.env.JWT_EXPIRES_IN || '15m'
+            }
+        );
+
+        const refreshToken = jwt.sign(
+            { id: usuario.id, token_version: usuario.token_version, type: 'refresh' },
+            process.env.JWT_REFRESH_SECRET,
+            {
+                expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d'
             }
         );
 
         return {
             usuario: usuarioSinContraseña,
-            token: token,
+            access_token: accessToken,
+            refresh_token: refreshToken,
             token_type: 'Bearer',
-            expires_in: process.env.JWT_EXPIRES_IN || '2h'
+            expires_in: process.env.JWT_EXPIRES_IN || '15m'
         };
+    }
+
+    refreshTokenAsync = async (refreshToken) => {
+        let decoded;
+        try {
+            decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+        } catch {
+            const error = new Error('Refresh token invalido o expirado.');
+            error.statusCode = 401;
+            throw error;
+        }
+
+        if (decoded.type !== 'refresh') {
+            const error = new Error('Tipo de token incorrecto.');
+            error.statusCode = 401;
+            throw error;
+        }
+
+        const usuario = await this.repo.getByIdAsync(decoded.id);
+        if (!usuario || usuario.activo === false) {
+            const error = new Error('Usuario no encontrado o desactivado.');
+            error.statusCode = 401;
+            throw error;
+        }
+
+        if (Number(usuario.token_version) !== Number(decoded.token_version)) {
+            const error = new Error('Refresh token revocado.');
+            error.statusCode = 401;
+            throw error;
+        }
+
+        const { contraseña, ...usuarioData } = usuario;
+
+        const newAccessToken = jwt.sign(
+            {
+                id: usuario.id,
+                email: usuario.email,
+                id_rol: usuario.id_rol,
+                id_empresa: usuario.id_empresa,
+                id_sede: usuario.id_sede,
+                token_version: usuario.token_version
+            },
+            process.env.JWT_SECRET,
+            {
+                expiresIn: process.env.JWT_EXPIRES_IN || '15m'
+            }
+        );
+
+        const newRefreshToken = jwt.sign(
+            { id: usuario.id, token_version: usuario.token_version, type: 'refresh' },
+            process.env.JWT_REFRESH_SECRET,
+            {
+                expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d'
+            }
+        );
+
+        return {
+            access_token: newAccessToken,
+            refresh_token: newRefreshToken,
+            token_type: 'Bearer',
+            expires_in: process.env.JWT_EXPIRES_IN || '15m'
+        };
+    }
+
+    revocarRefreshTokensAsync = async (id) => {
+        const version = await this.repo.incrementTokenVersionAsync(id);
+        if (version === null) {
+            const error = new Error('Error al revocar tokens del usuario.');
+            error.statusCode = 500;
+            throw error;
+        }
+        return version;
     }
 
     getGaragistasByGarageIdAsync = async (id_garage) => {
@@ -210,7 +292,10 @@ export default class UsuarioService {
             await this._validarSinReservasActivasAsync(id, 'desactivar');
         }
 
-        // 2. Llamar al repositorio para hacer el update parcial
+        // 2. Revocar tokens si se desactiva o reactiva
+        await this.repo.incrementTokenVersionAsync(id);
+
+        // 3. Llamar al repositorio para hacer el update parcial
         return await this.repo.updateEstadoAsync(id, activo);
     }
 

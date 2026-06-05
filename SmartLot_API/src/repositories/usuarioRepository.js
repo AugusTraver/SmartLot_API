@@ -30,10 +30,10 @@ export default class UsuarioRepository {
     createAsync = async (entity) => {
         try {
             const result = await pool.query(
-                `INSERT INTO usuarios (id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa, activo)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+                `INSERT INTO usuarios (id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa, activo, token_version)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
                 [entity.id_rol, entity.nombre, entity.apellido, entity.id_sede,
-                entity.email, entity.telefono, entity.contraseña, entity.id_empresa, entity.activo]
+                entity.email, entity.telefono, entity.contraseña, entity.id_empresa, entity.activo, entity.token_version ?? 0]
             );
             return result.rows[0];
         } catch (error) { console.error(error); return null; }
@@ -43,10 +43,10 @@ export default class UsuarioRepository {
         // En una transacción, no hacemos try/catch interno para que los errores
         // se propaguen y provoquen el ROLLBACK en la transacción.
         const result = await client.query(
-            `INSERT INTO usuarios (id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa, activo)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+            `INSERT INTO usuarios (id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa, activo, token_version)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
             [entity.id_rol, entity.nombre, entity.apellido, entity.id_sede,
-            entity.email, entity.telefono, entity.contraseña, entity.id_empresa, entity.activo]
+            entity.email, entity.telefono, entity.contraseña, entity.id_empresa, entity.activo, entity.token_version ?? 0]
         );
         return result.rows[0];
     }
@@ -55,9 +55,9 @@ export default class UsuarioRepository {
         try {
             const result = await pool.query(
                 `UPDATE usuarios SET id_rol=$1, nombre=$2, apellido=$3, id_sede=$4,
-                 email=$5, telefono=$6, contraseña=$7, id_empresa=$8, activo=$9 WHERE id=$10 RETURNING *`,
+                 email=$5, telefono=$6, contraseña=$7, id_empresa=$8, activo=$9, token_version=$10 WHERE id=$11 RETURNING *`,
                 [entity.id_rol, entity.nombre, entity.apellido, entity.id_sede,
-                entity.email, entity.telefono, entity.contraseña, entity.id_empresa, entity.activo, id]
+                entity.email, entity.telefono, entity.contraseña, entity.id_empresa, entity.activo, entity.token_version ?? 0, id]
             );
             return result.rows[0] ?? null;
         } catch (error) { console.error(error); return null; }
@@ -77,6 +77,16 @@ export default class UsuarioRepository {
             console.error('Error en updateEstadoAsync:', error);
             return null;
         }
+    }
+
+    incrementTokenVersionAsync = async (id) => {
+        try {
+            const result = await pool.query(
+                'UPDATE usuarios SET token_version = token_version + 1 WHERE id = $1 RETURNING token_version',
+                [id]
+            );
+            return result.rows[0]?.token_version ?? null;
+        } catch (error) { console.error(error); return null; }
     }
 
     deleteAsync = async (id) => {

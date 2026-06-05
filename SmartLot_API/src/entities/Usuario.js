@@ -9,6 +9,7 @@ class Usuario {
     contraseña;
     id_empresa;
     activo;
+    token_version = 0;
 }
 
 export default Usuario;
