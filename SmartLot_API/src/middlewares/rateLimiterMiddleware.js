@@ -1,14 +1,15 @@
 import rateLimit from 'express-rate-limit';
 
 const authRateLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 10,
+    windowMs: 3 * 60 * 1000,
+    max: 100,
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: (req) => req.ip,
     handler: (req, res) => {
         res.status(429).json({
             error: true,
-            message: 'Demasiadas solicitudes. Intente nuevamente en 15 minutos.',
+            message: 'Demasiadas solicitudes. Intente nuevamente en 3 minutos.',
             statusCode: 429
         });
     }
