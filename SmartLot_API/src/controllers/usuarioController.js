@@ -162,6 +162,7 @@ router.post('', authMiddleware, requireRole(1, 4), async (req, res) => {
     const { id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa, id_garage, activo } = req.body;
     const rolNumerico = parseInt(id_rol, 10);
     const esGarajista = rolNumerico === 3;
+    const esSuperadmin = rolNumerico === 4;
 
     if (!isValidString(nombre)) throwError('El nombre es requerido.', 400);
     if (!isValidString(apellido)) throwError('El apellido es requerido.', 400);
@@ -176,13 +177,19 @@ router.post('', authMiddleware, requireRole(1, 4), async (req, res) => {
         if (!isValidId(id_garage)) {
             throwError('El id_garage es requerido para el rol garajista y debe ser un número válido.', 400);
         }
-    } else {
+    } else if (!esSuperadmin) {
         if (!isValidId(id_sede)) throwError('El id_sede es requerido y debe ser un número válido.', 400);
     }
 
-    if (!isValidId(id_empresa)) throwError('El id_empresa es requerido y debe ser un número válido.', 400);
+    if (!esSuperadmin && !isValidId(id_empresa)) {
+        throwError('El id_empresa es requerido y debe ser un número válido.', 400);
+    }
     if (telefono && !isValidPhone(telefono)) throwError('El teléfono debe contener solo dígitos (mínimo 7).', 400);
-    if (id_garage !== undefined && id_garage !== null && !isValidId(id_garage)) throwError('El id_garage debe ser un número válido.', 400);
+    if (id_garage !== undefined && id_garage !== null && id_garage !== '' && !isValidId(id_garage)) throwError('El id_garage debe ser un número válido.', 400);
+
+    if (id_sede === '' || id_sede === undefined || id_sede === null) req.body.id_sede = null;
+    if (id_empresa === '' || id_empresa === undefined || id_empresa === null) req.body.id_empresa = null;
+    if (id_garage === '' || id_garage === undefined || id_garage === null) req.body.id_garage = null;
 
     const data = await svc.createAsync(req.body);
     if (!data) throwError('Error interno al crear el usuario.', 500);
