@@ -8,14 +8,14 @@ export default class ReservaRepository {
 
     getAllAsync = async () => {
         try {
-            const result = await pool.query('SELECT * FROM reservas ORDER BY id');
+            const result = await pool.query('SELECT * FROM reservas WHERE COALESCE("Borrado", false) = false ORDER BY id');
             return result.rows;
         } catch (error) { console.error(error); return null; }
     }
 
     getByIdAsync = async (id) => {
         try {
-            const result = await pool.query('SELECT * FROM reservas WHERE id = $1', [id]);
+            const result = await pool.query('SELECT * FROM reservas WHERE id = $1 AND COALESCE("Borrado", false) = false', [id]);
             return result.rows[0] ?? null;
         } catch (error) { console.error(error); return null; }
     }
@@ -25,6 +25,7 @@ export default class ReservaRepository {
             const result = await pool.query(
                 `SELECT * FROM reservas
                  WHERE id_usuario = $1
+                   AND COALESCE("Borrado", false) = false
                  ORDER BY fecha_entrada`,
                 [id_usuario]
             );
@@ -38,6 +39,7 @@ export default class ReservaRepository {
                 `SELECT * FROM reservas
                  WHERE id_usuario = $1
                    AND COALESCE(salio, false) = false
+                   AND COALESCE("Borrado", false) = false
                  ORDER BY fecha_entrada`,
                 [id_usuario]
             );
@@ -51,6 +53,7 @@ export default class ReservaRepository {
                 `SELECT * FROM reservas
                  WHERE id_garage = $1
                    AND COALESCE(salio, false) = false
+                   AND COALESCE("Borrado", false) = false
                  ORDER BY fecha_entrada`,
                 [id_garage]
             );
@@ -65,6 +68,7 @@ export default class ReservaRepository {
                  WHERE id_vehiculo = $1 
                    AND (fecha_entrada < $2 AND fecha_salida > $3)
                    AND COALESCE(salio, false) = false
+                   AND COALESCE("Borrado", false) = false
                    AND ($4::integer IS NULL OR id != $4)`,
                 [id_vehiculo, fecha_salida, fecha_entrada, excludeId]
             );
@@ -79,6 +83,7 @@ export default class ReservaRepository {
                  WHERE id_usuario = $1 
                    AND (fecha_entrada < $2 AND fecha_salida > $3)
                    AND COALESCE(salio, false) = false
+                   AND COALESCE("Borrado", false) = false
                    AND ($4::integer IS NULL OR id != $4)`,
                 [id_usuario, fecha_salida, fecha_entrada, excludeId]
             );
@@ -93,6 +98,7 @@ export default class ReservaRepository {
                  WHERE id_garage = $1 
                    AND (fecha_entrada < $2 AND fecha_salida > $3)
                    AND COALESCE(salio, false) = false
+                   AND COALESCE("Borrado", false) = false
                    AND ($4::integer IS NULL OR id != $4)`,
                 [id_garage, fecha_salida, fecha_entrada, excludeId]
             );
@@ -116,7 +122,7 @@ export default class ReservaRepository {
         try {
             const result = await pool.query(
                 `UPDATE reservas SET id_usuario=$1, id_garage=$2, id_vehiculo=$3,
-                 fecha_entrada=$4, fecha_salida=$5, entro=$6, salio=$7 WHERE id=$8 RETURNING *`,
+                 fecha_entrada=$4, fecha_salida=$5, entro=$6, salio=$7 WHERE id=$8 AND COALESCE("Borrado", false) = false RETURNING *`,
                 [entity.id_usuario, entity.id_garage, entity.id_vehiculo,
                  entity.fecha_entrada, entity.fecha_salida, entity.entro, entity.salio, id]
             );
@@ -127,7 +133,7 @@ export default class ReservaRepository {
     updateWithClientAsync = async (id, entity, client) => {
         const result = await client.query(
             `UPDATE reservas SET id_usuario=$1, id_garage=$2, id_vehiculo=$3,
-             fecha_entrada=$4, fecha_salida=$5, entro=$6, salio=$7 WHERE id=$8 RETURNING *`,
+             fecha_entrada=$4, fecha_salida=$5, entro=$6, salio=$7 WHERE id=$8 AND COALESCE("Borrado", false) = false RETURNING *`,
             [entity.id_usuario, entity.id_garage, entity.id_vehiculo,
              entity.fecha_entrada, entity.fecha_salida, entity.entro, entity.salio, id]
         );
@@ -136,7 +142,7 @@ export default class ReservaRepository {
 
     registrarIngresoWithClientAsync = async (id, client) => {
         const result = await client.query(
-            'UPDATE reservas SET entro = true WHERE id = $1 RETURNING *',
+            'UPDATE reservas SET entro = true WHERE id = $1 AND COALESCE("Borrado", false) = false RETURNING *',
             [id]
         );
         return result.rows[0] ?? null;
@@ -144,7 +150,7 @@ export default class ReservaRepository {
 
     registrarSalidaWithClientAsync = async (id, client) => {
         const result = await client.query(
-            'UPDATE reservas SET salio = true WHERE id = $1 RETURNING *',
+            'UPDATE reservas SET salio = true WHERE id = $1 AND COALESCE("Borrado", false) = false RETURNING *',
             [id]
         );
         return result.rows[0] ?? null;
@@ -152,7 +158,7 @@ export default class ReservaRepository {
 
     deleteAsync = async (id) => {
         try {
-            const result = await pool.query('DELETE FROM reservas WHERE id = $1', [id]);
+            const result = await pool.query('UPDATE reservas SET "Borrado" = true WHERE id = $1 AND COALESCE("Borrado", false) = false', [id]);
             return result.rowCount > 0;
         } catch (error) { console.error(error); return false; }
     }

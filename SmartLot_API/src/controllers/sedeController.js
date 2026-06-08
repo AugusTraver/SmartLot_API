@@ -57,7 +57,7 @@ router.delete('/:id', requireRole(1, 4), async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) throwError('El ID proporcionado no es válido.', 400);
 
-    const ok = await svc.deleteAsync(id);
+    const ok = await svc.deleteAsync(id, req.usuario);
     if (!ok) throwError('No encontrado: La sede con ese ID no existe.', 404);
     res.status(200).json({ message: 'Eliminado exitosamente.' });
 });

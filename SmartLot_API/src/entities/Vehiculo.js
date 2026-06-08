@@ -3,6 +3,7 @@ class Vehiculo {
     id_usuario;
     id_modelo;
     patente;
+    Borrado;
 }
 
 export default Vehiculo;

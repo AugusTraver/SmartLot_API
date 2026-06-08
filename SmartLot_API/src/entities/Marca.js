@@ -1,6 +1,7 @@
 class Marca {
     id;
     nombre;
+    Borrado;
     
 }
 

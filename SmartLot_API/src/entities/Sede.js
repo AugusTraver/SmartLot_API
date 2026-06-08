@@ -4,6 +4,7 @@ class Sede {
     nombre;
     descripcion;
     ubicacion;
+    Borrado;
 }
 
 export default Sede;

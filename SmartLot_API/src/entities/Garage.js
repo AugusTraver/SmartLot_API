@@ -11,6 +11,7 @@ class Garage {
     capacidad_reservas;
     ocupacion_reservas;
     ocupacion_no_reservas;
+    Borrado;
 }
 
 export default Garage;

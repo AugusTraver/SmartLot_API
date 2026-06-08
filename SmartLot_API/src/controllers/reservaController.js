@@ -75,7 +75,7 @@ router.delete('/:id', authMiddleware, requireRole(1, 4), async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) throwError('El ID proporcionado no es válido.', 400);
 
-    const ok = await svc.deleteAsync(id);
+    const ok = await svc.deleteAsync(id, req.usuario);
     if (!ok) throwError('No encontrado: La reserva con ese ID no existe.', 404);
     res.status(200).json({ message: 'Eliminado exitosamente.' });
 });
@@ -85,7 +85,7 @@ router.post('/:id/cancel', authMiddleware, requireRole(1, 2, 4), async (req, res
     const id = parseInt(req.params.id);
     if (isNaN(id)) throwError('El ID proporcionado no es válido.', 400);
 
-    const ok = await svc.cancelarAsync(id);
+    const ok = await svc.cancelarAsync(id, req.usuario);
     if (!ok) throwError('No encontrado: La reserva con ese ID no existe.', 404);
     res.status(200).json({ message: 'Reserva cancelada exitosamente.' });
 });

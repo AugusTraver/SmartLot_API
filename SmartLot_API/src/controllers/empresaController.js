@@ -20,6 +20,13 @@ router.get('', async (req, res) => {
 });
 
 // GET BY ID
+router.get('/auditoria', requireRole(4), async (req, res) => {
+    const data = await svc.getAuditAsync();
+    if (!data) throwError('Error interno del servidor', 500);
+    res.status(200).json(data);
+});
+
+// GET BY ID
 router.get('/:id', async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) throwError('El ID proporcionado no es válido.', 400);
@@ -45,7 +52,7 @@ router.put('/:id', requireRole(4), async (req, res) => {
     const { nombre } = req.body;
     if (nombre !== undefined && !isValidString(nombre)) throwError('El nombre no puede estar vacío.', 400);
 
-    const data = await svc.updateAsync(parseInt(req.params.id, 10), req.body);
+    const data = await svc.updateAsync(parseInt(req.params.id, 10), req.body, req.usuario);
     if (!data) throwError('No encontrado: La empresa con ese ID no existe.', 404);
     res.status(200).json(data);
 });
@@ -55,7 +62,7 @@ router.delete('/:id', requireRole(4), async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) throwError('El ID proporcionado no es válido.', 400);
 
-    const ok = await svc.deleteAsync(id);
+    const ok = await svc.deleteAsync(id, req.usuario);
     if (!ok) throwError('No encontrado: La empresa con ese ID no existe.', 404);
     res.status(200).json({ message: 'Eliminado exitosamente.' });
 });

@@ -8,14 +8,14 @@ export default class ModeloRepository {
 
     getAllAsync = async () => {
         try {
-            const result = await pool.query('SELECT * FROM modelos ORDER BY id');
+            const result = await pool.query('SELECT * FROM modelos WHERE COALESCE("Borrado", false) = false ORDER BY id');
             return result.rows;
         } catch (error) { console.error(error); return null; }
     }
 
     getByIdAsync = async (id) => {
         try {
-            const result = await pool.query('SELECT * FROM modelos WHERE id = $1', [id]);
+            const result = await pool.query('SELECT * FROM modelos WHERE id = $1 AND COALESCE("Borrado", false) = false', [id]);
             return result.rows[0] ?? null;
         } catch (error) { console.error(error); return null; }
     }
@@ -33,7 +33,7 @@ export default class ModeloRepository {
     updateAsync = async (id, entity) => {
         try {
             const result = await pool.query(
-                'UPDATE modelos SET id_marca = $1, nombre = $2 WHERE id = $3 RETURNING *',
+                'UPDATE modelos SET id_marca = $1, nombre = $2 WHERE id = $3 AND COALESCE("Borrado", false) = false RETURNING *',
                 [entity.id_marca, entity.nombre, id]
             );
             return result.rows[0] ?? null;
@@ -42,7 +42,7 @@ export default class ModeloRepository {
 
     deleteAsync = async (id) => {
         try {
-            const result = await pool.query('DELETE FROM modelos WHERE id = $1', [id]);
+            const result = await pool.query('UPDATE modelos SET "Borrado" = true WHERE id = $1 AND COALESCE("Borrado", false) = false', [id]);
             return result.rowCount > 0;
         } catch (error) { console.error(error); return false; }
     }

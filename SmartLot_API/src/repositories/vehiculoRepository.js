@@ -8,21 +8,21 @@ export default class VehiculoRepository {
 
     getAllAsync = async () => {
         try {
-            const result = await pool.query('SELECT * FROM vehiculos ORDER BY id');
+            const result = await pool.query('SELECT * FROM vehiculos WHERE COALESCE("Borrado", false) = false ORDER BY id');
             return result.rows;
         } catch (error) { console.error(error); return null; }
     }
 
     getByIdAsync = async (id) => {
         try {
-            const result = await pool.query('SELECT * FROM vehiculos WHERE id = $1', [id]);
+            const result = await pool.query('SELECT * FROM vehiculos WHERE id = $1 AND COALESCE("Borrado", false) = false', [id]);
             return result.rows[0] ?? null;
         } catch (error) { console.error(error); return null; }
     }
 
     getByPatenteAsync = async (patente) => {
         try {
-            const result = await pool.query('SELECT * FROM vehiculos WHERE patente = $1', [patente]);
+            const result = await pool.query('SELECT * FROM vehiculos WHERE patente = $1 AND COALESCE("Borrado", false) = false', [patente]);
             return result.rows[0] ?? null;
         } catch (error) { console.error(error); return null; }
     }
@@ -40,7 +40,7 @@ export default class VehiculoRepository {
     updateAsync = async (id, entity) => {
         try {
             const result = await pool.query(
-                'UPDATE vehiculos SET id_usuario = $1, id_modelo = $2, patente = $3 WHERE id = $4 RETURNING *',
+                'UPDATE vehiculos SET id_usuario = $1, id_modelo = $2, patente = $3 WHERE id = $4 AND COALESCE("Borrado", false) = false RETURNING *',
                 [entity.id_usuario, entity.id_modelo, entity.patente, id]
             );
             return result.rows[0] ?? null;
@@ -49,7 +49,7 @@ export default class VehiculoRepository {
 
     deleteAsync = async (id) => {
         try {
-            const result = await pool.query('DELETE FROM vehiculos WHERE id = $1', [id]);
+            const result = await pool.query('UPDATE vehiculos SET "Borrado" = true WHERE id = $1 AND COALESCE("Borrado", false) = false', [id]);
             return result.rowCount > 0;
         } catch (error) { console.error(error); return false; }
     }

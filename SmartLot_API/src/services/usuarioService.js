@@ -35,6 +35,8 @@ export default class UsuarioService {
 
     getByIdAsync = async (id) => await this.repo.getByIdAsync(id);
 
+    getAuditAsync = async () => await this.repo.getAuditAsync();
+
     loginAsync = async (credentials) => {
         const usuario = await this.repo.getByEmailAsync(credentials.email);
 
@@ -276,10 +278,10 @@ export default class UsuarioService {
             }
         }
 
-        return await this.repo.updateAsync(id, merged);
+        return await this.repo.updateAsync(id, merged, requestingUser?.id ?? null);
     }
 
-    updateEstadoAsync = async (id, activo) => {
+    updateEstadoAsync = async (id, activo, requestingUser = null) => {
         // 1. Validar primero que el usuario exista
         const usuario = await this.repo.getByIdAsync(id);
         if (!usuario) {
@@ -296,10 +298,10 @@ export default class UsuarioService {
         await this.repo.incrementTokenVersionAsync(id);
 
         // 3. Llamar al repositorio para hacer el update parcial
-        return await this.repo.updateEstadoAsync(id, activo);
+        return await this.repo.updateEstadoAsync(id, activo, requestingUser?.id ?? null);
     }
 
-    deleteAsync = async (id) => {
+    deleteAsync = async (id, requestingUser = null) => {
         const usuario = await this.repo.getByIdAsync(id);
         if (!usuario) {
             const error = new Error(`El usuario con ID ${id} no existe.`);
@@ -309,7 +311,7 @@ export default class UsuarioService {
 
         await this._validarSinReservasAsync(id, 'eliminar');
 
-        return await this.repo.deleteAsync(id);
+        return await this.repo.deleteAsync(id, requestingUser?.id ?? null);
     }
 
     /**

@@ -8,14 +8,14 @@ export default class MarcaRepository {
 
     getAllAsync = async () => {
         try {
-            const result = await pool.query('SELECT * FROM marcas ORDER BY id');
+            const result = await pool.query('SELECT * FROM marcas WHERE COALESCE("Borrado", false) = false ORDER BY id');
             return result.rows;
         } catch (error) { console.error(error); return null; }
     }
 
     getByIdAsync = async (id) => {
         try {
-            const result = await pool.query('SELECT * FROM marcas WHERE id = $1', [id]);
+            const result = await pool.query('SELECT * FROM marcas WHERE id = $1 AND COALESCE("Borrado", false) = false', [id]);
             return result.rows[0] ?? null;
         } catch (error) { console.error(error); return null; }
     }
@@ -33,7 +33,7 @@ export default class MarcaRepository {
     updateAsync = async (id, entity) => {
         try {
             const result = await pool.query(
-                'UPDATE marcas SET nombre = $1 WHERE id = $2 RETURNING *',
+                'UPDATE marcas SET nombre = $1 WHERE id = $2 AND COALESCE("Borrado", false) = false RETURNING *',
                 [entity.nombre, id]
             );
             return result.rows[0] ?? null;
@@ -42,7 +42,7 @@ export default class MarcaRepository {
 
     deleteAsync = async (id) => {
         try {
-            const result = await pool.query('DELETE FROM marcas WHERE id = $1', [id]);
+            const result = await pool.query('UPDATE marcas SET "Borrado" = true WHERE id = $1 AND COALESCE("Borrado", false) = false', [id]);
             return result.rowCount > 0;
         } catch (error) { console.error(error); return false; }
     }

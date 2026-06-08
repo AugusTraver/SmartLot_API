@@ -143,6 +143,13 @@ router.get('/me', authMiddleware, (req, res) => {
 });
 
 // GET BY ID (admin, smartlot o el propio usuario)
+router.get('/auditoria', authMiddleware, requireRole(4), async (req, res) => {
+    const data = await svc.getAuditAsync();
+    if (!data) throwError('Error interno del servidor', 500);
+    res.status(200).json(data);
+});
+
+// GET BY ID (admin, smartlot o el propio usuario)
 router.get('/:id', authMiddleware, async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) throwError('El ID proporcionado no es válido.', 400);
@@ -225,7 +232,7 @@ router.patch('/:id/estado', authMiddleware, requireRole(1, 4), async (req, res) 
         throwError('El campo "activo" es requerido y debe ser un valor booleano (true/false).', 400);
     }
 
-    const data = await svc.updateEstadoAsync(parseInt(id, 10), activo);
+    const data = await svc.updateEstadoAsync(parseInt(id, 10), activo, req.usuario);
     if (!data) throwError('No encontrado: El usuario con ese ID no existe.', 404);
     res.status(200).json(data);
 });
@@ -236,7 +243,7 @@ router.delete('/:id', authMiddleware, requireRole(1, 4), async (req, res) => {
 
     if (!isValidId(id)) throwError('El ID proporcionado no es válido.', 400);
 
-    const ok = await svc.deleteAsync(parseInt(id, 10));
+    const ok = await svc.deleteAsync(parseInt(id, 10), req.usuario);
     if (!ok) throwError('No encontrado: El usuario con ese ID no existe.', 404);
     res.status(200).json({ message: 'Usuario eliminado exitosamente.' });
 });

@@ -8,33 +8,33 @@ export default class GarageRepository {
 
     getAllAsync = async () => {
         try {
-            const result = await pool.query('SELECT * FROM garages ORDER BY id');
+            const result = await pool.query('SELECT * FROM garages WHERE COALESCE("Borrado", false) = false ORDER BY id');
             return result.rows;
         } catch (error) { console.error(error); return null; }
     }
 
     getByIdAsync = async (id) => {
         try {
-            const result = await pool.query('SELECT * FROM garages WHERE id = $1', [id]);
+            const result = await pool.query('SELECT * FROM garages WHERE id = $1 AND COALESCE("Borrado", false) = false', [id]);
             return result.rows[0] ?? null;
         } catch (error) { console.error(error); return null; }
     }
 
     getByIdForUpdateWithClientAsync = async (id, client) => {
-        const result = await client.query('SELECT * FROM garages WHERE id = $1 FOR UPDATE', [id]);
+        const result = await client.query('SELECT * FROM garages WHERE id = $1 AND COALESCE("Borrado", false) = false FOR UPDATE', [id]);
         return result.rows[0] ?? null;
     }
 
     getOcupacionReservaAsync = async (id) => {
         try {
-            const result = await pool.query('SELECT ocupacion_reservas FROM garages WHERE id = $1', [id]);
+            const result = await pool.query('SELECT ocupacion_reservas FROM garages WHERE id = $1 AND COALESCE("Borrado", false) = false', [id]);
             return result.rows;
         } catch (error) { console.error(error); return null; }
     }
 
     getOcupacionNoReservaAsync = async (id) => {
         try {
-            const result = await pool.query('SELECT ocupacion_no_reservas FROM garages WHERE id = $1', [id]);
+            const result = await pool.query('SELECT ocupacion_no_reservas FROM garages WHERE id = $1 AND COALESCE("Borrado", false) = false', [id]);
             return result.rows;
         } catch (error) { console.error(error); return null; }
     }
@@ -64,8 +64,9 @@ export default class GarageRepository {
                 capacidad_para_no_reservas=$7, 
                 capacidad_reservas=$8, 
                 ocupacion_reservas = $9, 
-                ocupacion_no_reservas = $10 
-             WHERE id=$11 
+                ocupacion_no_reservas = $10
+             WHERE id=$11
+               AND COALESCE("Borrado", false) = false
              RETURNING *`,
             [
                 entity.id_sede, 
@@ -77,7 +78,7 @@ export default class GarageRepository {
                 entity.capacidad_para_no_reservas, 
                 entity.capacidad_reservas, 
                 entity.ocupacion_reservas, 
-                entity.ocupacion_no_reservas, 
+                entity.ocupacion_no_reservas,
                 id
             ]
         );
@@ -88,7 +89,13 @@ export default class GarageRepository {
 
     deleteAsync = async (id) => {
         try {
-            const result = await pool.query('DELETE FROM garages WHERE id = $1', [id]);
+            const result = await pool.query(
+                `UPDATE garages
+                 SET "Borrado" = true
+                 WHERE id = $1
+                   AND COALESCE("Borrado", false) = false`,
+                [id]
+            );
             return result.rowCount > 0;
         } catch (error) { console.error(error); return false; }
     }
@@ -96,7 +103,7 @@ export default class GarageRepository {
     incrementOcupacionReservasAsync = async (id) => {
         try {
             const result = await pool.query(
-                'UPDATE garages SET ocupacion_reservas = COALESCE(ocupacion_reservas, 0) + 1 WHERE id = $1 RETURNING *',
+                'UPDATE garages SET ocupacion_reservas = COALESCE(ocupacion_reservas, 0) + 1 WHERE id = $1 AND COALESCE("Borrado", false) = false RETURNING *',
                 [id]
             );
             return result.rows[0] ?? null;
@@ -109,6 +116,7 @@ export default class GarageRepository {
              SET ocupacion_reservas = COALESCE(ocupacion_reservas, 0) + 1
              WHERE id = $1
                AND estado IS DISTINCT FROM false
+               AND COALESCE("Borrado", false) = false
                AND COALESCE(ocupacion_reservas, 0) < COALESCE(capacidad_reservas, capacidad, 0)
              RETURNING *`,
             [id]
@@ -119,7 +127,7 @@ export default class GarageRepository {
     decrementOcupacionReservasAsync = async (id) => {
         try {
             const result = await pool.query(
-                'UPDATE garages SET ocupacion_reservas = GREATEST(0, COALESCE(ocupacion_reservas, 0) - 1) WHERE id = $1 RETURNING *',
+                'UPDATE garages SET ocupacion_reservas = GREATEST(0, COALESCE(ocupacion_reservas, 0) - 1) WHERE id = $1 AND COALESCE("Borrado", false) = false RETURNING *',
                 [id]
             );
             return result.rows[0] ?? null;
@@ -131,6 +139,7 @@ export default class GarageRepository {
             `UPDATE garages
              SET ocupacion_reservas = COALESCE(ocupacion_reservas, 0) - 1
              WHERE id = $1
+               AND COALESCE("Borrado", false) = false
                AND COALESCE(ocupacion_reservas, 0) > 0
              RETURNING *`,
             [id]
@@ -141,7 +150,7 @@ export default class GarageRepository {
     incrementOcupacionNoReservasAsync = async (id) => {
         try {
             const result = await pool.query(
-                'UPDATE garages SET ocupacion_no_reservas = COALESCE(ocupacion_no_reservas, 0) + 1 WHERE id = $1 RETURNING *',
+                'UPDATE garages SET ocupacion_no_reservas = COALESCE(ocupacion_no_reservas, 0) + 1 WHERE id = $1 AND COALESCE("Borrado", false) = false RETURNING *',
                 [id]
             );
             return result.rows[0] ?? null;
@@ -151,7 +160,7 @@ export default class GarageRepository {
     decrementOcupacionNoReservasAsync = async (id) => {
         try {
             const result = await pool.query(
-                'UPDATE garages SET ocupacion_no_reservas = GREATEST(0, COALESCE(ocupacion_no_reservas, 0) - 1) WHERE id = $1 RETURNING *',
+                'UPDATE garages SET ocupacion_no_reservas = GREATEST(0, COALESCE(ocupacion_no_reservas, 0) - 1) WHERE id = $1 AND COALESCE("Borrado", false) = false RETURNING *',
                 [id]
             );
             return result.rows[0] ?? null;

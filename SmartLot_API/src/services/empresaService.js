@@ -9,7 +9,8 @@ export default class EmpresaService {
 
     getAllAsync = async () => await this.repo.getAllAsync();
     getByIdAsync = async (id) => await this.repo.getByIdAsync(id);
+    getAuditAsync = async () => await this.repo.getAuditAsync();
     createAsync = async (entity) => await this.repo.createAsync(entity);
-    updateAsync = async (id, entity) => await this.repo.updateAsync(id, entity);
-    deleteAsync = async (id) => await this.repo.deleteAsync(id);
+    updateAsync = async (id, entity, requestingUser = null) => await this.repo.updateAsync(id, entity, requestingUser?.id ?? null);
+    deleteAsync = async (id, requestingUser = null) => await this.repo.deleteAsync(id, requestingUser?.id ?? null);
 }
