@@ -41,7 +41,32 @@ export default class ReservaService {
         entity.entro = false;
         entity.salio = false;
 
-        return await this.repo.createAsync(entity);
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+
+            const reserva = await this.repo.createWithClientAsync(entity, client);
+            if (!reserva) {
+                const error = new Error('Error interno al crear la reserva.');
+                error.statusCode = 500;
+                throw error;
+            }
+
+            const garage = await this.garageService.incrementOcupacionReservasWithClientAsync(entity.id_garage, client);
+            if (!garage) {
+                const error = new Error(`El garage con ID ${entity.id_garage} no tiene capacidad disponible para esta reserva.`);
+                error.statusCode = 400;
+                throw error;
+            }
+
+            await client.query('COMMIT');
+            return reserva;
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
     }
 
     updateAsync = async (id, entity, requestingUser) => {
@@ -101,7 +126,34 @@ export default class ReservaService {
             throw error;
         }
 
-        return await this.repo.cancelarAsync(id);
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+
+            const cancelada = await this.repo.cancelarWithClientAsync(id, client);
+            if (!cancelada) {
+                const error = new Error(`Error interno al cancelar la reserva con ID ${id}.`);
+                error.statusCode = 500;
+                throw error;
+            }
+
+            if (!reserva.salio) {
+                const updatedGarage = await this.garageService.decrementOcupacionReservasWithClientAsync(reserva.id_garage, client);
+                if (!updatedGarage) {
+                    const error = new Error(`Error al liberar la ocupacion del garage con ID ${reserva.id_garage}.`);
+                    error.statusCode = 500;
+                    throw error;
+                }
+            }
+
+            await client.query('COMMIT');
+            return true;
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
     }
 
     checkInAsync = async (id) => {
@@ -152,20 +204,12 @@ export default class ReservaService {
             }
 
             this._validarGarageDisponible(garage);
-            this._validarCapacidadReservasActualGarage(garage);
             this._validarCapacidadTotalActualGarage(garage);
 
             const updatedReserva = await this.repo.registrarIngresoWithClientAsync(id, client);
             if (!updatedReserva) {
                 const error = new Error('Error al registrar el ingreso de la reserva.');
                 error.statusCode = 500;
-                throw error;
-            }
-
-            const updatedGarage = await this.garageService.incrementOcupacionReservasWithClientAsync(reserva.id_garage, client);
-            if (!updatedGarage) {
-                const error = new Error(`No hay capacidad de reservas disponible en el garage con ID ${reserva.id_garage}.`);
-                error.statusCode = 400;
                 throw error;
             }
 

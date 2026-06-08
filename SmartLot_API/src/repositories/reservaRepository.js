@@ -130,6 +130,24 @@ export default class ReservaRepository {
         } catch (error) { console.error(error); return null; }
     }
 
+    createWithClientAsync = async (entity, client) => {
+        const result = await client.query(
+            `INSERT INTO reservas (id_usuario, id_garage, id_vehiculo, fecha_entrada, fecha_salida, entro, salio)
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+            [entity.id_usuario, entity.id_garage, entity.id_vehiculo,
+             entity.fecha_entrada, entity.fecha_salida, entity.entro, entity.salio]
+        );
+        return result.rows[0];
+    }
+
+    cancelarWithClientAsync = async (id, client) => {
+        const result = await client.query(
+            'UPDATE reservas SET "Borrado" = true WHERE id = $1 AND COALESCE("Borrado", false) = false RETURNING *',
+            [id]
+        );
+        return result.rows[0] ?? null;
+    }
+
     updateWithClientAsync = async (id, entity, client) => {
         const result = await client.query(
             `UPDATE reservas SET id_usuario=$1, id_garage=$2, id_vehiculo=$3,
