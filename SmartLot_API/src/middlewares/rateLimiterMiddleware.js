@@ -5,7 +5,6 @@ const authRateLimiter = rateLimit({
     max: 100,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => req.ip,
     handler: (req, res) => {
         res.status(429).json({
             error: true,
