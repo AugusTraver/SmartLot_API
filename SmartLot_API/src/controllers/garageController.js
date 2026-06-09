@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import GarageService from './../services/garageService.js';
-import { isValidId, isValidString, isValidPositiveNumber } from '../helpers/validatorHelper.js';
+import { isValidId, isValidString, isValidPositiveNumber, isValidTime } from '../helpers/validatorHelper.js';
 import { requireRole } from '../middlewares/rolesMiddleware.js';
 
 const router = Router();
@@ -51,11 +51,14 @@ router.get('/:id', async (req, res) => {
 
 // CREATE (POST)
 router.post('', requireRole(1, 4), async (req, res) => {
-    const { id_sede, nombre, capacidad, estado } = req.body;
+    const { id_sede, nombre, capacidad, estado, hora_apertura, hora_cierre } = req.body;
     if (!isValidString(nombre)) throwError('El nombre es requerido.', 400);
     if (!isValidId(String(id_sede))) throwError('El id_sede es requerido y debe ser un número válido.', 400);
     if (!isValidPositiveNumber(capacidad)) throwError('La capacidad debe ser un número positivo.', 400);
     if (estado !== undefined && typeof estado !== 'boolean') throwError('El estado debe ser un valor booleano (true o false).', 400);
+    if (hora_apertura !== undefined && hora_apertura !== null && !isValidTime(hora_apertura)) throwError('La hora de apertura debe tener formato HH:MM.', 400);
+    if (hora_cierre !== undefined && hora_cierre !== null && !isValidTime(hora_cierre)) throwError('La hora de cierre debe tener formato HH:MM.', 400);
+    if (hora_apertura && hora_cierre && hora_apertura >= hora_cierre) throwError('La hora de apertura debe ser anterior a la hora de cierre.', 400);
 
     const data = await svc.createAsync(req.body);
     if (!data) throwError('Error interno al crear el garage.', 500);
@@ -65,11 +68,14 @@ router.post('', requireRole(1, 4), async (req, res) => {
 // UPDATE (PUT)
 router.put('/:id', requireRole(1, 4), async (req, res) => {
     if (!isValidId(req.params.id)) throwError('El ID proporcionado no es válido.', 400);
-    const { id_sede, nombre, capacidad, estado } = req.body;
+    const { id_sede, nombre, capacidad, estado, hora_apertura, hora_cierre } = req.body;
     if (nombre !== undefined && !isValidString(nombre)) throwError('El nombre no puede estar vacío.', 400);
     if (id_sede !== undefined && !isValidId(String(id_sede))) throwError('El id_sede debe ser un número válido.', 400);
     if (capacidad !== undefined && !isValidPositiveNumber(capacidad)) throwError('La capacidad debe ser un número positivo.', 400);
     if (estado !== undefined && typeof estado !== 'boolean') throwError('El estado debe ser un valor booleano (true o false).', 400);
+    if (hora_apertura !== undefined && hora_apertura !== null && !isValidTime(hora_apertura)) throwError('La hora de apertura debe tener formato HH:MM.', 400);
+    if (hora_cierre !== undefined && hora_cierre !== null && !isValidTime(hora_cierre)) throwError('La hora de cierre debe tener formato HH:MM.', 400);
+    if (hora_apertura && hora_cierre && hora_apertura >= hora_cierre) throwError('La hora de apertura debe ser anterior a la hora de cierre.', 400);
 
     const data = await svc.updateAsync(parseInt(req.params.id, 10), req.body);
     if (!data) throwError('No encontrado: El garage con ese ID no existe.', 404);

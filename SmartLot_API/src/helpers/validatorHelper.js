@@ -63,4 +63,9 @@ export const isValidPatente = (patente) => {
  */
 export const isValidPositiveNumber = (n) => {
     return typeof n === 'number' && n > 0;
+};
+
+export const isValidTime = (time) => {
+    if (!time || typeof time !== 'string') return false;
+    return /^([01]\d|2[0-3]):([0-5]\d)(:([0-5]\d))?$/.test(time);
 };

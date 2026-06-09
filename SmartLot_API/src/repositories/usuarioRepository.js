@@ -67,17 +67,39 @@ export default class UsuarioRepository {
                 entity.email, entity.telefono, entity.contraseña, entity.id_empresa, entity.activo, entity.token_version ?? 0]
             );
             return result.rows[0];
-        } catch (error) { console.error(error); return null; }
+        } catch (error) {
+            if (error.code === '23505') {
+                const err = new Error('Ya existe un usuario con ese email.');
+                err.statusCode = 409;
+                throw err;
+            }
+            console.error(error);
+            const err = new Error('Error al crear el usuario en la base de datos.');
+            err.statusCode = 500;
+            throw err;
+        }
     }
 
     createWithClientAsync = async (entity, client) => {
-        const result = await client.query(
-            `INSERT INTO usuarios (id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa, activo, token_version)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-            [entity.id_rol, entity.nombre, entity.apellido, entity.id_sede,
-            entity.email, entity.telefono, entity.contraseña, entity.id_empresa, entity.activo, entity.token_version ?? 0]
-        );
-        return result.rows[0];
+        try {
+            const result = await client.query(
+                `INSERT INTO usuarios (id_rol, nombre, apellido, id_sede, email, telefono, contraseña, id_empresa, activo, token_version)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+                [entity.id_rol, entity.nombre, entity.apellido, entity.id_sede,
+                entity.email, entity.telefono, entity.contraseña, entity.id_empresa, entity.activo, entity.token_version ?? 0]
+            );
+            return result.rows[0];
+        } catch (error) {
+            if (error.code === '23505') {
+                const err = new Error('Ya existe un usuario con ese email.');
+                err.statusCode = 409;
+                throw err;
+            }
+            console.error(error);
+            const err = new Error('Error al crear el usuario en la base de datos.');
+            err.statusCode = 500;
+            throw err;
+        }
     }
 
     updateAsync = async (id, entity, updatedBy = null) => {

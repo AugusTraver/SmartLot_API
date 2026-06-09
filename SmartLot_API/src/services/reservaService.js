@@ -4,6 +4,7 @@ import ReservaRepository from '../repositories/reservaRepository.js';
 import UsuarioService from './usuarioService.js';
 import GarageService from './garageService.js';
 import VehiculoService from './vehiculoService.js';
+import SedeService from './sedeService.js';
 
 export default class ReservaService {
     constructor() {
@@ -12,6 +13,7 @@ export default class ReservaService {
         this.usuarioService = new UsuarioService();
         this.garageService = new GarageService();
         this.vehiculoService = new VehiculoService();
+        this.sedeService = new SedeService();
     }
 
     getAllAsync = async () => await this.repo.getAllAsync();
@@ -100,6 +102,15 @@ export default class ReservaService {
             throw error;
         }
 
+        const ahora = new Date();
+        const fechaEntradaActual = new Date(current.fecha_entrada);
+        const limiteModificacion = new Date(fechaEntradaActual.getTime() - 30 * 60 * 1000);
+        if (ahora >= limiteModificacion) {
+            const error = new Error(`La reserva con ID ${id} esta demasiado proxima a su inicio para ser modificada.`);
+            error.statusCode = 400;
+            throw error;
+        }
+
         const mergedEntity = { ...current, ...entity };
 
         this._validarCamposObligatorios(mergedEntity);
@@ -122,6 +133,15 @@ export default class ReservaService {
 
         if (reserva.entro && !reserva.salio) {
             const error = new Error(`La reserva con ID ${id} ya registro su ingreso. Debe registrar la salida antes de cancelarla.`);
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const ahora = new Date();
+        const fechaEntrada = new Date(reserva.fecha_entrada);
+        const limiteCancelacion = new Date(fechaEntrada.getTime() - 30 * 60 * 1000);
+        if (ahora >= limiteCancelacion) {
+            const error = new Error(`La reserva con ID ${id} esta demasiado proxima a su inicio para ser cancelada.`);
             error.statusCode = 400;
             throw error;
         }
@@ -331,6 +351,13 @@ export default class ReservaService {
             }
         }
 
+        if (usuario && usuario.id_empresa && garage && garage.id_sede) {
+            const sede = await this.sedeService.getByIdAsync(garage.id_sede);
+            if (sede && Number(sede.id_empresa) !== Number(usuario.id_empresa)) {
+                errores.push(`El garage con ID ${entity.id_garage} no pertenece a la misma empresa que el usuario.`);
+            }
+        }
+
         if (errores.length > 0) {
             const error = new Error(errores.join(' '));
             error.statusCode = 400;
@@ -365,9 +392,31 @@ export default class ReservaService {
             error.statusCode = 400;
             throw error;
         }
+
+        const DURACION_MAXIMA_MS = 12 * 60 * 60 * 1000;
+        if (fechaSalida - fechaEntrada > DURACION_MAXIMA_MS) {
+            const error = new Error('La reserva no puede superar las 12 horas de duracion.');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const ANTELACION_MINIMA_MS = 30 * 60 * 1000;
+        if (fechaEntrada.getTime() - Date.now() < ANTELACION_MINIMA_MS) {
+            const error = new Error('La reserva debe hacerse con al menos 30 minutos de antelacion.');
+            error.statusCode = 400;
+            throw error;
+        }
     }
 
     _validarDisponibilidadAsync = async (entity, excludeId = null) => {
+        const activas = await this.repo.getActivasByUsuarioAsync(entity.id_usuario);
+        const countActivas = activas ? (excludeId ? activas.filter(r => Number(r.id) !== Number(excludeId)).length : activas.length) : 0;
+        if (countActivas > 0) {
+            const error = new Error(`El usuario con ID ${entity.id_usuario} ya tiene una reserva activa.`);
+            error.statusCode = 400;
+            throw error;
+        }
+
         const overlapUsuario = await this.repo.getOverlapByUsuarioAsync(
             entity.id_usuario,
             entity.fecha_entrada,
@@ -400,6 +449,32 @@ export default class ReservaService {
         }
 
         this._validarGarageDisponible(garage);
+
+        if (garage.hora_apertura && garage.hora_cierre) {
+            const fechaEntrada = new Date(entity.fecha_entrada);
+            const fechaSalida = new Date(entity.fecha_salida);
+
+            const entradaMinutos = fechaEntrada.getHours() * 60 + fechaEntrada.getMinutes();
+            const salidaMinutos = fechaSalida.getHours() * 60 + fechaSalida.getMinutes();
+
+            const aperturaParts = garage.hora_apertura.split(':');
+            const cierreParts = garage.hora_cierre.split(':');
+
+            const aperturaMinutos = parseInt(aperturaParts[0], 10) * 60 + parseInt(aperturaParts[1], 10);
+            const cierreMinutos = parseInt(cierreParts[0], 10) * 60 + parseInt(cierreParts[1], 10);
+
+            if (entradaMinutos < aperturaMinutos) {
+                const error = new Error(`El garage con ID ${entity.id_garage} abre a las ${garage.hora_apertura}.`);
+                error.statusCode = 400;
+                throw error;
+            }
+
+            if (salidaMinutos > cierreMinutos) {
+                const error = new Error(`El garage con ID ${entity.id_garage} cierra a las ${garage.hora_cierre}.`);
+                error.statusCode = 400;
+                throw error;
+            }
+        }
 
         const capReservas = garage.capacidad_reservas !== null && garage.capacidad_reservas !== undefined
             ? garage.capacidad_reservas

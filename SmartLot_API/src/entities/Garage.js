@@ -11,6 +11,8 @@ class Garage {
     capacidad_reservas;
     ocupacion_reservas;
     ocupacion_no_reservas;
+    hora_apertura;
+    hora_cierre;
     Borrado;
 }
 

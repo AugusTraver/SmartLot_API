@@ -42,10 +42,11 @@ export default class GarageRepository {
     createAsync = async (entity) => {
         try {
             const result = await pool.query(
-                `INSERT INTO garages (id_sede, nombre, piso, ubicacion, estado, capacidad, capacidad_para_no_reservas, capacidad_reservas,ocupacion_reservas, ocupacion_no_reservas)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+                `INSERT INTO garages (id_sede, nombre, piso, ubicacion, estado, capacidad, capacidad_para_no_reservas, capacidad_reservas, ocupacion_reservas, ocupacion_no_reservas, hora_apertura, hora_cierre)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
                 [entity.id_sede, entity.nombre, entity.piso, entity.ubicacion, entity.estado,
-                entity.capacidad, entity.capacidad_para_no_reservas, entity.capacidad_reservas, entity.ocupacion_reservas, entity.ocupacion_no_reservas]
+                entity.capacidad, entity.capacidad_para_no_reservas, entity.capacidad_reservas, entity.ocupacion_reservas, entity.ocupacion_no_reservas,
+                entity.hora_apertura, entity.hora_cierre]
             );
             return result.rows[0];
         } catch (error) { console.error(error); return null; }
@@ -64,8 +65,10 @@ export default class GarageRepository {
                 capacidad_para_no_reservas=$7, 
                 capacidad_reservas=$8, 
                 ocupacion_reservas = $9, 
-                ocupacion_no_reservas = $10
-             WHERE id=$11
+                ocupacion_no_reservas = $10,
+                hora_apertura=$11,
+                hora_cierre=$12
+             WHERE id=$13
                AND COALESCE("Borrado", false) = false
              RETURNING *`,
             [
@@ -79,6 +82,8 @@ export default class GarageRepository {
                 entity.capacidad_reservas, 
                 entity.ocupacion_reservas, 
                 entity.ocupacion_no_reservas,
+                entity.hora_apertura,
+                entity.hora_cierre,
                 id
             ]
         );
