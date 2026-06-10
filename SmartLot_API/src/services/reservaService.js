@@ -54,13 +54,6 @@ export default class ReservaService {
                 throw error;
             }
 
-            const garage = await this.garageService.incrementOcupacionReservasWithClientAsync(entity.id_garage, client);
-            if (!garage) {
-                const error = new Error(`El garage con ID ${entity.id_garage} no tiene capacidad disponible para esta reserva.`);
-                error.statusCode = 400;
-                throw error;
-            }
-
             await client.query('COMMIT');
             return reserva;
         } catch (error) {
@@ -157,7 +150,7 @@ export default class ReservaService {
                 throw error;
             }
 
-            if (!reserva.salio) {
+            if (reserva.entro && !reserva.salio) {
                 const updatedGarage = await this.garageService.decrementOcupacionReservasWithClientAsync(reserva.id_garage, client);
                 if (!updatedGarage) {
                     const error = new Error(`Error al liberar la ocupacion del garage con ID ${reserva.id_garage}.`);
@@ -230,6 +223,13 @@ export default class ReservaService {
             if (!updatedReserva) {
                 const error = new Error('Error al registrar el ingreso de la reserva.');
                 error.statusCode = 500;
+                throw error;
+            }
+
+            const updatedGarage = await this.garageService.incrementOcupacionReservasWithClientAsync(reserva.id_garage, client);
+            if (!updatedGarage) {
+                const error = new Error(`El garage con ID ${reserva.id_garage} no tiene capacidad disponible para registrar el ingreso.`);
+                error.statusCode = 400;
                 throw error;
             }
 
