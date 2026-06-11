@@ -182,6 +182,7 @@ router.post('', authMiddleware, requireRole(1, 4), async (req, res) => {
     const rolNumerico = parseInt(id_rol, 10);
     const esGarajista = rolNumerico === 3;
     const esSuperadmin = rolNumerico === 4;
+    const esAdmin = rolNumerico === 1;
 
     if (!isValidString(nombre)) throwError('El nombre es requerido.', 400);
     if (!isValidString(apellido)) throwError('El apellido es requerido.', 400);
@@ -195,6 +196,10 @@ router.post('', authMiddleware, requireRole(1, 4), async (req, res) => {
         }
         if (!isValidId(id_garage)) {
             throwError('El id_garage es requerido para el rol garajista y debe ser un número válido.', 400);
+        }
+    } else if (esAdmin) {
+        if (id_sede !== null && id_sede !== undefined && !isValidId(id_sede)) {
+            throwError('El id_sede debe ser un número válido.', 400);
         }
     } else if (!esSuperadmin) {
         if (!isValidId(id_sede)) throwError('El id_sede es requerido y debe ser un número válido.', 400);

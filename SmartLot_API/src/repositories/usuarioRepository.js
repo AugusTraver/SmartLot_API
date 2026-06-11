@@ -8,7 +8,14 @@ export default class UsuarioRepository {
 
     getAllAsync = async () => {
         try {
-            const result = await pool.query('SELECT * FROM usuarios WHERE COALESCE("Borrado", false) = false ORDER BY id');
+            const result = await pool.query(`
+                SELECT u.*, 
+                    CASE WHEN u.id_rol = 3 THEN ug.id_garage ELSE NULL END as id_garage
+                FROM usuarios u 
+                LEFT JOIN usuario_garage ug ON u.id = ug.id_usuario 
+                WHERE COALESCE(u."Borrado", false) = false 
+                ORDER BY u.id
+            `);
             return result.rows;
         } catch (error) { console.error(error); return null; }
     }
