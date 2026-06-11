@@ -8,9 +8,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "db-test": "node ./database/db.js",
-    "apptest": "node src/appTest.js",
-    "app": "node src/app.js"
+    "db-test": "node ./src/database/db.js",
+    "apptest": "node ./src/appTest.js",
+    "app": "node ./src/app.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.3",

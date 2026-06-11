@@ -7,9 +7,16 @@ if (!supabaseUrl || !supabaseServiceRoleKey) {
   console.error('Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en .env');
 }
 
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-});
+export let supabaseAdmin;
+
+try {
+  supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+} catch (error) {
+  console.error('Error al crear cliente Supabase:', error);
+  supabaseAdmin = null;
+}

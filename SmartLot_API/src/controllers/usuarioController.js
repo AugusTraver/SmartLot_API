@@ -137,6 +137,18 @@ router.post('/logout', (req, res) => {
     res.status(200).json({ message: 'Sesion cerrada exitosamente.' });
 });
 
+// IMPERSONATE (SUPERADMIN only) - returns target user data for frontend impersonation
+router.post('/impersonate', authMiddleware, requireRole(4), async (req, res) => {
+    const { id } = req.body;
+    if (!isValidId(id)) throwError('El ID del usuario a impersonar es requerido y debe ser un número válido.', 400);
+
+    const data = await svc.getByIdAsync(parseInt(id, 10));
+    if (!data) throwError('Usuario no encontrado.', 404);
+
+    const { contraseña, ...usuarioSinContraseña } = data;
+    res.status(200).json({ usuario: usuarioSinContraseña });
+});
+
 // GET AUTHENTICATED USER
 router.get('/me', authMiddleware, (req, res) => {
     res.status(200).json({ usuario: req.usuario });

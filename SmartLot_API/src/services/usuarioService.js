@@ -236,7 +236,7 @@ export default class UsuarioService {
                 await client.query('COMMIT');
                 return nuevoUsuario;
             } catch (error) {
-                await client.query('ROLLBACK');
+                try { await client.query('ROLLBACK'); } catch (rollbackError) { console.error('ROLLBACK falló:', rollbackError); }
                 throw error;
             } finally {
                 client.release();

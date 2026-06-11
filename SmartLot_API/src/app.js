@@ -17,6 +17,14 @@ import AuthController      from "./controllers/AuthController.js"
 import authMiddleware      from "./middlewares/authMiddleware.js"
 import errorHandler       from "./middlewares/errorHandler.js"
 
+process.on('unhandledRejection', (reason) => {
+    console.error('UNHANDLED REJECTION:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+    console.error('UNCAUGHT EXCEPTION:', error);
+});
+
 const app  = express();
 const port = process.env.PORT || 3000;
 
@@ -38,8 +46,13 @@ app.use("/api/auth", AuthController);
 
 app.use(errorHandler);
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
     console.log("server.js");
     console.log(`Listening on http://localhost:${port}`)
-})
+});
+
+server.on('error', (error) => {
+    console.error('Server error:', error);
+    process.exit(1);
+});
   

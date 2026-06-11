@@ -53,8 +53,9 @@ export default class GarageRepository {
     }
 
     updateAsync = async (id, entity) => {
-        // No usamos try/catch aquí para que el error real llegue al controller
-        const result = await pool.query(
+        let result;
+        try {
+            result = await pool.query(
             `UPDATE garages SET 
                 id_sede=$1, 
                 nombre=$2, 
@@ -88,8 +89,9 @@ export default class GarageRepository {
             ]
         );
 
-        // Si no afectó ninguna fila, devuelve null (aquí sí es un 404 real)
-        return result.rows[0] ?? null;
+            // Si no afectó ninguna fila, devuelve null (aquí sí es un 404 real)
+            return result.rows[0] ?? null;
+        } catch (error) { console.error(error); return null; }
     }
 
     deleteAsync = async (id) => {
