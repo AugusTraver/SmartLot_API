@@ -298,6 +298,58 @@ export default class ReservaService {
         }
     }
 
+    getDisponibilidadPorHoraAsync = async (garage_id, fecha) => {
+        const garage = await this.garageService.getByIdAsync(garage_id);
+        if (!garage) {
+            const error = new Error(`El garage con ID ${garage_id} no existe.`);
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const capacidadReservas = garage.capacidad_reservas !== null && garage.capacidad_reservas !== undefined
+            ? garage.capacidad_reservas
+            : (garage.capacidad || 0);
+
+        const apertura = (garage.hora_apertura || '00:00').split(':').map(Number);
+        const cierre = (garage.hora_cierre || '23:59').split(':').map(Number);
+        const aperturaMinutos = apertura[0] * 60 + apertura[1];
+        const cierreMinutos = cierre[0] * 60 + cierre[1];
+
+        const reservas = await this.repo.getOverlapByGarageAndDateAsync(garage_id, fecha) || [];
+
+        const horas = [];
+        for (let m = aperturaMinutos; m < cierreMinutos; m += 60) {
+            const hh = String(Math.floor(m / 60)).padStart(2, '0');
+            const mm = String(m % 60).padStart(2, '0');
+            const horaStr = `${hh}:${mm}`;
+
+            const horaDate = new Date(`${fecha}T${horaStr}:00`);
+            const horaFinDate = new Date(horaDate.getTime() + 60 * 60 * 1000);
+
+            let count = 0;
+            for (const r of reservas) {
+                const rEntrada = new Date(r.fecha_entrada);
+                const rSalida = new Date(r.fecha_salida);
+                if (rEntrada < horaFinDate && rSalida > horaDate) {
+                    count++;
+                }
+            }
+
+            horas.push({
+                hora: horaStr,
+                reservas: count,
+                disponibles: Math.max(capacidadReservas - count, 0),
+            });
+        }
+
+        return {
+            garage_id: Number(garage_id),
+            fecha,
+            capacidad_reservas: capacidadReservas,
+            horas,
+        };
+    }
+
     _validarCamposObligatorios = (entity) => {
         const errores = [];
 

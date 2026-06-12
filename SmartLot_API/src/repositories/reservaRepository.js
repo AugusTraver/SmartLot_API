@@ -174,6 +174,21 @@ export default class ReservaRepository {
         return result.rows[0] ?? null;
     }
 
+    getOverlapByGarageAndDateAsync = async (id_garage, fecha) => {
+        try {
+            const result = await pool.query(
+                `SELECT * FROM reservas
+                 WHERE id_garage = $1
+                   AND fecha_entrada::date = $2::date
+                   AND COALESCE(salio, false) = false
+                   AND COALESCE("Borrado", false) = false
+                 ORDER BY fecha_entrada`,
+                [id_garage, fecha]
+            );
+            return result.rows;
+        } catch (error) { console.error(error); return null; }
+    }
+
     deleteAsync = async (id) => {
         try {
             const result = await pool.query('UPDATE reservas SET "Borrado" = true WHERE id = $1 AND COALESCE("Borrado", false) = false', [id]);

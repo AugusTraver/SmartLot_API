@@ -27,6 +27,18 @@ router.get('', async (req, res) => {
     res.status(200).json(data);
 });
 
+// GET DISPONIBILIDAD POR HORA
+router.get('/disponibilidad-por-hora', async (req, res) => {
+    const garage_id = parseInt(req.query.garage_id);
+    const fecha = req.query.fecha;
+
+    if (isNaN(garage_id)) throwError('El garage_id es requerido y debe ser un número válido.', 400);
+    if (!fecha) throwError('La fecha es requerida (formato YYYY-MM-DD).', 400);
+
+    const data = await svc.getDisponibilidadPorHoraAsync(garage_id, fecha);
+    res.status(200).json(data);
+});
+
 // GET BY ID
 router.get('/:id', async (req, res) => {
     const id = parseInt(req.params.id);
