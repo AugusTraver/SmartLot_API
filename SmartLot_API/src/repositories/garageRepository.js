@@ -1,5 +1,6 @@
 // garageRepository.js
 import pool from '../database/db.js';
+import { getDiasSemana } from '../helpers/validatorHelper.js';
 
 export default class GarageRepository {
     constructor() {
@@ -8,14 +9,29 @@ export default class GarageRepository {
 
     getAllAsync = async () => {
         try {
-            const result = await pool.query('SELECT * FROM garages WHERE COALESCE("Borrado", false) = false ORDER BY id');
+            const result = await pool.query(`
+                SELECT g.*, COALESCE(
+                    (SELECT array_agg(gd.dia ORDER BY gd.dia) FROM garage_dias gd WHERE gd.id_garage = g.id AND gd.activo = true),
+                    '{}'::dia_semana[]
+                ) AS dias
+                FROM garages g
+                WHERE COALESCE(g."Borrado", false) = false
+                ORDER BY g.id
+            `);
             return result.rows;
         } catch (error) { console.error(error); return null; }
     }
 
     getByIdAsync = async (id) => {
         try {
-            const result = await pool.query('SELECT * FROM garages WHERE id = $1 AND COALESCE("Borrado", false) = false', [id]);
+            const result = await pool.query(`
+                SELECT g.*, COALESCE(
+                    (SELECT array_agg(gd.dia ORDER BY gd.dia) FROM garage_dias gd WHERE gd.id_garage = g.id AND gd.activo = true),
+                    '{}'::dia_semana[]
+                ) AS dias
+                FROM garages g
+                WHERE g.id = $1 AND COALESCE(g."Borrado", false) = false
+            `, [id]);
             return result.rows[0] ?? null;
         } catch (error) { console.error(error); return null; }
     }
@@ -48,7 +64,18 @@ export default class GarageRepository {
                 entity.capacidad, entity.capacidad_para_no_reservas, entity.capacidad_reservas, entity.ocupacion_reservas, entity.ocupacion_no_reservas,
                 entity.hora_apertura, entity.hora_cierre]
             );
-            return result.rows[0];
+            const garage = result.rows[0];
+            if (garage && entity.dias && entity.dias.length > 0) {
+                const todosLosDias = getDiasSemana();
+                for (const dia of todosLosDias) {
+                    const activo = entity.dias.includes(dia);
+                    await pool.query(
+                        'INSERT INTO garage_dias (id_garage, dia, activo) VALUES ($1, $2, $3) ON CONFLICT (id_garage, dia) DO UPDATE SET activo = $3',
+                        [garage.id, dia, activo]
+                    );
+                }
+            }
+            return garage;
         } catch (error) { console.error(error); return null; }
     }
 
@@ -89,8 +116,18 @@ export default class GarageRepository {
             ]
         );
 
-            // Si no afectó ninguna fila, devuelve null (aquí sí es un 404 real)
-            return result.rows[0] ?? null;
+            const garage = result.rows[0] ?? null;
+            if (garage && entity.dias) {
+                const todosLosDias = getDiasSemana();
+                for (const dia of todosLosDias) {
+                    const activo = entity.dias.includes(dia);
+                    await pool.query(
+                        'INSERT INTO garage_dias (id_garage, dia, activo) VALUES ($1, $2, $3) ON CONFLICT (id_garage, dia) DO UPDATE SET activo = $3',
+                        [id, dia, activo]
+                    );
+                }
+            }
+            return garage;
         } catch (error) { console.error(error); return null; }
     }
 
@@ -172,5 +209,35 @@ export default class GarageRepository {
             );
             return result.rows[0] ?? null;
         } catch (error) { console.error(error); return null; }
+    }
+
+    getDiasAsync = async (id_garage) => {
+        try {
+            const result = await pool.query(
+                'SELECT dia FROM garage_dias WHERE id_garage = $1 AND activo = true ORDER BY dia',
+                [id_garage]
+            );
+            return result.rows.map(r => r.dia);
+        } catch (error) { console.error(error); return null; }
+    }
+
+    addDiaAsync = async (id_garage, dia) => {
+        try {
+            const result = await pool.query(
+                'INSERT INTO garage_dias (id_garage, dia, activo) VALUES ($1, $2, true) ON CONFLICT (id_garage, dia) DO UPDATE SET activo = true RETURNING *',
+                [id_garage, dia]
+            );
+            return result.rows[0] ?? null;
+        } catch (error) { console.error(error); return null; }
+    }
+
+    removeDiaAsync = async (id_garage, dia) => {
+        try {
+            const result = await pool.query(
+                'UPDATE garage_dias SET activo = false WHERE id_garage = $1 AND dia = $2 RETURNING *',
+                [id_garage, dia]
+            );
+            return result.rowCount > 0;
+        } catch (error) { console.error(error); return false; }
     }
 }

@@ -1,6 +1,7 @@
 // garageService.js
 import GarageRepository from '../repositories/garageRepository.js';
 import SedeService from './sedeService.js';
+import { isValidDiaSemana } from '../helpers/validatorHelper.js';
 
 export default class GarageService {
     constructor() {
@@ -25,15 +26,57 @@ export default class GarageService {
 
     createAsync = async (entity) => {
         await this._validarRelacionesAsync(entity);
+        this._validarDiasGarage(entity);
         return await this.repo.createAsync(entity);
     }
 
     updateAsync = async (id, entity) => {
         await this._validarRelacionesAsync(entity);
+        if (entity.dias) this._validarDiasGarage(entity);
         return await this.repo.updateAsync(id, entity);
     }
 
     deleteAsync = async (id) => await this.repo.deleteAsync(id);
+
+    getDiasAsync = async (id_garage) => {
+        const garage = await this.repo.getByIdAsync(id_garage);
+        if (!garage) {
+            const error = new Error(`El garage con ID ${id_garage} no existe.`);
+            error.statusCode = 404;
+            throw error;
+        }
+        return await this.repo.getDiasAsync(id_garage);
+    }
+
+    addDiaAsync = async (id_garage, dia) => {
+        const garage = await this.repo.getByIdAsync(id_garage);
+        if (!garage) {
+            const error = new Error(`El garage con ID ${id_garage} no existe.`);
+            error.statusCode = 404;
+            throw error;
+        }
+        if (!isValidDiaSemana(dia)) {
+            const error = new Error(`El dia "${dia}" no es valido. Use: Lunes, Martes, Miercoles, Jueves, Viernes, Sabado, Domingo.`);
+            error.statusCode = 400;
+            throw error;
+        }
+        return await this.repo.addDiaAsync(id_garage, dia);
+    }
+
+    removeDiaAsync = async (id_garage, dia) => {
+        const garage = await this.repo.getByIdAsync(id_garage);
+        if (!garage) {
+            const error = new Error(`El garage con ID ${id_garage} no existe.`);
+            error.statusCode = 404;
+            throw error;
+        }
+        if (!isValidDiaSemana(dia)) {
+            const error = new Error(`El dia "${dia}" no es valido. Use: Lunes, Martes, Miercoles, Jueves, Viernes, Sabado, Domingo.`);
+            error.statusCode = 400;
+            throw error;
+        }
+        return await this.repo.removeDiaAsync(id_garage, dia);
+    }
 
     registrarIngresoNoReservaAsync = async (id) => {
         const garage = await this.repo.getByIdAsync(id);
@@ -104,6 +147,22 @@ export default class GarageService {
         if (entity.capacidad && entity.capacidad_para_no_reservas) {
             if (entity.capacidad_para_no_reservas > entity.capacidad) {
                 const error = new Error('La capacidad para no reservas no puede superar la capacidad total.');
+                error.statusCode = 400;
+                throw error;
+            }
+        }
+    }
+
+    _validarDiasGarage = (entity) => {
+        if (!entity.dias || !Array.isArray(entity.dias) || entity.dias.length === 0) {
+            const error = new Error('Debe proporcionar al menos un dia disponible para el garage.');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        for (const dia of entity.dias) {
+            if (!isValidDiaSemana(dia)) {
+                const error = new Error(`El dia "${dia}" no es valido. Use: Lunes, Martes, Miercoles, Jueves, Viernes, Sabado, Domingo.`);
                 error.statusCode = 400;
                 throw error;
             }

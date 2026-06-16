@@ -14,6 +14,7 @@ class Garage {
     hora_apertura;
     hora_cierre;
     Borrado;
+    dias;
 }
 
 export default Garage;

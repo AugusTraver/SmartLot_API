@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import ReservaService from './../services/reservaService.js';
-import { isValidId, isValidDate } from '../helpers/validatorHelper.js';
+import { isValidId, isValidDate, isValidDiaSemana } from '../helpers/validatorHelper.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 import { requireRole, requireAdmin } from '../middlewares/rolesMiddleware.js';
 
@@ -53,12 +53,13 @@ router.get('/:id', async (req, res) => {
 router.post('', authMiddleware, async (req, res) => {
     const body = req.body ?? {};
 
-    const { id_usuario, id_garage, id_vehiculo, fecha_entrada, fecha_salida } = body;
+    const { id_usuario, id_garage, id_vehiculo, fecha_entrada, fecha_salida, dia } = body;
     if (!isValidId(String(id_usuario))) throwError('El id_usuario es requerido y debe ser un número válido.', 400);
     if (!isValidId(String(id_garage))) throwError('El id_garage es requerido y debe ser un número válido.', 400);
     if (!isValidId(String(id_vehiculo))) throwError('El id_vehiculo es requerido y debe ser un número válido.', 400);
     if (!isValidDate(fecha_entrada)) throwError('La fecha de entrada es requerida y debe ser una fecha válida.', 400);
     if (!isValidDate(fecha_salida)) throwError('La fecha de salida es requerida y debe ser una fecha válida.', 400);
+    if (!dia || !isValidDiaSemana(dia)) throwError('El dia es requerido y debe ser un valor valido: Lunes, Martes, Miercoles, Jueves, Viernes, Sabado, Domingo.', 400);
 
     const data = await svc.createAsync(body, req.usuario);
     if (!data) throwError('Error interno al crear la reserva.', 500);
@@ -70,12 +71,13 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (!isValidId(req.params.id)) throwError('El ID proporcionado no es válido.', 400);
     const body = req.body ?? {};
 
-    const { id_usuario, id_garage, id_vehiculo, fecha_entrada, fecha_salida } = body;
+    const { id_usuario, id_garage, id_vehiculo, fecha_entrada, fecha_salida, dia } = body;
     if (id_usuario !== undefined && !isValidId(String(id_usuario))) throwError('El id_usuario debe ser un número válido.', 400);
     if (id_garage !== undefined && !isValidId(String(id_garage))) throwError('El id_garage debe ser un número válido.', 400);
     if (id_vehiculo !== undefined && !isValidId(String(id_vehiculo))) throwError('El id_vehiculo debe ser un número válido.', 400);
     if (fecha_entrada !== undefined && !isValidDate(fecha_entrada)) throwError('La fecha de entrada debe ser una fecha válida.', 400);
     if (fecha_salida !== undefined && !isValidDate(fecha_salida)) throwError('La fecha de salida debe ser una fecha válida.', 400);
+    if (dia !== undefined && !isValidDiaSemana(dia)) throwError('El dia debe ser un valor valido: Lunes, Martes, Miercoles, Jueves, Viernes, Sabado, Domingo.', 400);
 
     const data = await svc.updateAsync(parseInt(req.params.id, 10), body, req.usuario);
     if (!data) throwError('No encontrado: La reserva con ese ID no existe.', 404);

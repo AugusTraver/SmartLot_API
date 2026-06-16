@@ -8,6 +8,7 @@ class Reserva {
     entro;
     salio;
     Borrado;
+    dia;
 }
 
 export default Reserva;

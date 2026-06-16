@@ -109,10 +109,10 @@ export default class ReservaRepository {
     createAsync = async (entity) => {
         try {
             const result = await pool.query(
-                `INSERT INTO reservas (id_usuario, id_garage, id_vehiculo, fecha_entrada, fecha_salida, entro, salio)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+                `INSERT INTO reservas (id_usuario, id_garage, id_vehiculo, fecha_entrada, fecha_salida, entro, salio, dia)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
                 [entity.id_usuario, entity.id_garage, entity.id_vehiculo,
-                 entity.fecha_entrada, entity.fecha_salida, entity.entro, entity.salio]
+                 entity.fecha_entrada, entity.fecha_salida, entity.entro, entity.salio, entity.dia]
             );
             return result.rows[0];
         } catch (error) { console.error(error); return null; }
@@ -122,9 +122,9 @@ export default class ReservaRepository {
         try {
             const result = await pool.query(
                 `UPDATE reservas SET id_usuario=$1, id_garage=$2, id_vehiculo=$3,
-                 fecha_entrada=$4, fecha_salida=$5, entro=$6, salio=$7 WHERE id=$8 AND COALESCE("Borrado", false) = false RETURNING *`,
+                 fecha_entrada=$4, fecha_salida=$5, entro=$6, salio=$7, dia=$8 WHERE id=$9 AND COALESCE("Borrado", false) = false RETURNING *`,
                 [entity.id_usuario, entity.id_garage, entity.id_vehiculo,
-                 entity.fecha_entrada, entity.fecha_salida, entity.entro, entity.salio, id]
+                 entity.fecha_entrada, entity.fecha_salida, entity.entro, entity.salio, entity.dia, id]
             );
             return result.rows[0] ?? null;
         } catch (error) { console.error(error); return null; }
@@ -132,10 +132,10 @@ export default class ReservaRepository {
 
     createWithClientAsync = async (entity, client) => {
         const result = await client.query(
-            `INSERT INTO reservas (id_usuario, id_garage, id_vehiculo, fecha_entrada, fecha_salida, entro, salio)
-             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+            `INSERT INTO reservas (id_usuario, id_garage, id_vehiculo, fecha_entrada, fecha_salida, entro, salio, dia)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
             [entity.id_usuario, entity.id_garage, entity.id_vehiculo,
-             entity.fecha_entrada, entity.fecha_salida, entity.entro, entity.salio]
+             entity.fecha_entrada, entity.fecha_salida, entity.entro, entity.salio, entity.dia]
         );
         return result.rows[0];
     }
@@ -151,9 +151,9 @@ export default class ReservaRepository {
     updateWithClientAsync = async (id, entity, client) => {
         const result = await client.query(
             `UPDATE reservas SET id_usuario=$1, id_garage=$2, id_vehiculo=$3,
-             fecha_entrada=$4, fecha_salida=$5, entro=$6, salio=$7 WHERE id=$8 AND COALESCE("Borrado", false) = false RETURNING *`,
+             fecha_entrada=$4, fecha_salida=$5, entro=$6, salio=$7, dia=$8 WHERE id=$9 AND COALESCE("Borrado", false) = false RETURNING *`,
             [entity.id_usuario, entity.id_garage, entity.id_vehiculo,
-             entity.fecha_entrada, entity.fecha_salida, entity.entro, entity.salio, id]
+             entity.fecha_entrada, entity.fecha_salida, entity.entro, entity.salio, entity.dia, id]
         );
         return result.rows[0] ?? null;
     }

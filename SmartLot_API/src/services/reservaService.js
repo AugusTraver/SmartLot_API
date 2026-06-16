@@ -5,6 +5,7 @@ import UsuarioService from './usuarioService.js';
 import GarageService from './garageService.js';
 import VehiculoService from './vehiculoService.js';
 import SedeService from './sedeService.js';
+import { isValidDiaSemana } from '../helpers/validatorHelper.js';
 
 export default class ReservaService {
     constructor() {
@@ -358,9 +359,16 @@ export default class ReservaService {
         if (!entity.id_vehiculo) errores.push('El id_vehiculo es requerido.');
         if (!entity.fecha_entrada) errores.push('La fecha de entrada es requerida.');
         if (!entity.fecha_salida) errores.push('La fecha de salida es requerida.');
+        if (!entity.dia) errores.push('El dia es requerido.');
 
         if (errores.length > 0) {
             const error = new Error(errores.join(' '));
+            error.statusCode = 400;
+            throw error;
+        }
+
+        if (entity.dia && !isValidDiaSemana(entity.dia)) {
+            const error = new Error(`El dia "${entity.dia}" no es valido. Use: Lunes, Martes, Miercoles, Jueves, Viernes, Sabado, Domingo.`);
             error.statusCode = 400;
             throw error;
         }
@@ -501,6 +509,12 @@ export default class ReservaService {
         }
 
         this._validarGarageDisponible(garage);
+
+        if (garage.dias && garage.dias.length > 0 && entity.dia && !garage.dias.includes(entity.dia)) {
+            const error = new Error(`El garage con ID ${entity.id_garage} no esta disponible los ${entity.dia}.`);
+            error.statusCode = 400;
+            throw error;
+        }
 
         if (garage.hora_apertura && garage.hora_cierre) {
             const fechaEntrada = new Date(entity.fecha_entrada);

@@ -68,4 +68,12 @@ export const isValidPositiveNumber = (n) => {
 export const isValidTime = (time) => {
     if (!time || typeof time !== 'string') return false;
     return /^([01]\d|2[0-3]):([0-5]\d)(:([0-5]\d))?$/.test(time);
-};
+};
+
+const DIAS_SEMANA = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
+
+export const isValidDiaSemana = (dia) => {
+    return DIAS_SEMANA.includes(dia);
+};
+
+export const getDiasSemana = () => [...DIAS_SEMANA];
