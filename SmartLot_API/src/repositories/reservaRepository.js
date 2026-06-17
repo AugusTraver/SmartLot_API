@@ -65,8 +65,9 @@ export default class ReservaRepository {
         try {
             const result = await pool.query(
                 `SELECT * FROM reservas 
-                 WHERE id_vehiculo = $1 
-                   AND (fecha_entrada < $2 AND fecha_salida > $3)
+                  WHERE id_vehiculo = $1 
+                    AND fecha_entrada::date = $3::date
+                    AND (fecha_entrada < $2 AND fecha_salida > $3)
                    AND COALESCE(salio, false) = false
                    AND COALESCE("Borrado", false) = false
                    AND ($4::integer IS NULL OR id != $4)`,
@@ -80,8 +81,9 @@ export default class ReservaRepository {
         try {
             const result = await pool.query(
                 `SELECT * FROM reservas 
-                 WHERE id_usuario = $1 
-                   AND (fecha_entrada < $2 AND fecha_salida > $3)
+                  WHERE id_usuario = $1 
+                    AND fecha_entrada::date = $3::date
+                    AND (fecha_entrada < $2 AND fecha_salida > $3)
                    AND COALESCE(salio, false) = false
                    AND COALESCE("Borrado", false) = false
                    AND ($4::integer IS NULL OR id != $4)`,
@@ -95,8 +97,9 @@ export default class ReservaRepository {
         try {
             const result = await pool.query(
                 `SELECT * FROM reservas 
-                 WHERE id_garage = $1 
-                   AND (fecha_entrada < $2 AND fecha_salida > $3)
+                  WHERE id_garage = $1 
+                    AND fecha_entrada::date = $3::date
+                    AND (fecha_entrada < $2 AND fecha_salida > $3)
                    AND COALESCE(salio, false) = false
                    AND COALESCE("Borrado", false) = false
                    AND ($4::integer IS NULL OR id != $4)`,
