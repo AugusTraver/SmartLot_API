@@ -469,14 +469,6 @@ export default class ReservaService {
     }
 
     _validarDisponibilidadAsync = async (entity, excludeId = null) => {
-        const activas = await this.repo.getActivasByUsuarioAsync(entity.id_usuario);
-        const countActivas = activas ? (excludeId ? activas.filter(r => Number(r.id) !== Number(excludeId)).length : activas.length) : 0;
-        if (countActivas > 0) {
-            const error = new Error(`El usuario con ID ${entity.id_usuario} ya tiene una reserva activa.`);
-            error.statusCode = 400;
-            throw error;
-        }
-
         const overlapUsuario = await this.repo.getOverlapByUsuarioAsync(
             entity.id_usuario,
             entity.fecha_entrada,
