@@ -64,14 +64,14 @@ export default class ReservaRepository {
     getOverlapByVehiculoAsync = async (id_vehiculo, fecha_entrada, fecha_salida, excludeId = null) => {
         try {
             const result = await pool.query(
-                `SELECT * FROM reservas 
-                  WHERE id_vehiculo = $1 
-                    AND fecha_entrada::date = $3::date
-                    AND (fecha_entrada < $2 AND fecha_salida > $3)
+                `SELECT * FROM reservas
+                  WHERE id_vehiculo = $1
+                    AND fecha_entrada::date = $2::timestamp::date
+                    AND (fecha_entrada < $3::timestamp AND fecha_salida > $2::timestamp)
                    AND COALESCE(salio, false) = false
                    AND COALESCE("Borrado", false) = false
                    AND ($4::integer IS NULL OR id != $4)`,
-                [id_vehiculo, fecha_salida, fecha_entrada, excludeId]
+                [id_vehiculo, fecha_entrada, fecha_salida, excludeId]
             );
             return result.rows;
         } catch (error) { console.error(error); return null; }
@@ -80,14 +80,14 @@ export default class ReservaRepository {
     getOverlapByUsuarioAsync = async (id_usuario, fecha_entrada, fecha_salida, excludeId = null) => {
         try {
             const result = await pool.query(
-                `SELECT * FROM reservas 
-                  WHERE id_usuario = $1 
-                    AND fecha_entrada::date = $3::date
-                    AND (fecha_entrada < $2 AND fecha_salida > $3)
+                `SELECT * FROM reservas
+                  WHERE id_usuario = $1
+                    AND fecha_entrada::date = $2::timestamp::date
+                    AND (fecha_entrada < $3::timestamp AND fecha_salida > $2::timestamp)
                    AND COALESCE(salio, false) = false
                    AND COALESCE("Borrado", false) = false
                    AND ($4::integer IS NULL OR id != $4)`,
-                [id_usuario, fecha_salida, fecha_entrada, excludeId]
+                [id_usuario, fecha_entrada, fecha_salida, excludeId]
             );
             return result.rows;
         } catch (error) { console.error(error); return null; }
@@ -96,14 +96,14 @@ export default class ReservaRepository {
     getOverlapByGarageAsync = async (id_garage, fecha_entrada, fecha_salida, excludeId = null) => {
         try {
             const result = await pool.query(
-                `SELECT * FROM reservas 
-                  WHERE id_garage = $1 
-                    AND fecha_entrada::date = $3::date
-                    AND (fecha_entrada < $2 AND fecha_salida > $3)
-                   AND COALESCE(salio, false) = false
-                   AND COALESCE("Borrado", false) = false
-                   AND ($4::integer IS NULL OR id != $4)`,
-                [id_garage, fecha_salida, fecha_entrada, excludeId]
+                `SELECT * FROM reservas
+                 WHERE id_garage = $1
+                   AND fecha_entrada::date = $2::timestamp::date
+                   AND (fecha_entrada < $3::timestamp AND fecha_salida > $2::timestamp)
+                  AND COALESCE(salio, false) = false
+                  AND COALESCE("Borrado", false) = false
+                  AND ($4::integer IS NULL OR id != $4)`,
+                [id_garage, fecha_entrada, fecha_salida, excludeId]
             );
             return result.rows;
         } catch (error) { console.error(error); return null; }
