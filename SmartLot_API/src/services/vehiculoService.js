@@ -25,8 +25,11 @@ export default class VehiculoService {
 
         // Validar patente única
         if (entity.patente) {
-            const existing = await this.repo.getByPatenteAsync(entity.patente);
+            const existing = await this.repo.getByPatenteIncludingDeletedAsync(entity.patente);
             if (existing) {
+                if (existing.Borrado) {
+                    return await this.repo.reactivateAsync(existing.id, entity);
+                }
                 const error = new Error(`Ya existe un vehículo con la patente ${entity.patente}.`);
                 error.statusCode = 400;
                 throw error;
