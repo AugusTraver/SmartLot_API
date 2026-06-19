@@ -169,6 +169,21 @@ export default class ReservaRepository {
         return result.rows[0] ?? null;
     }
 
+    getCountByUsuarioAndDateAsync = async (id_usuario, fecha, excludeId = null) => {
+        try {
+            const result = await pool.query(
+                `SELECT COUNT(*) as count FROM reservas
+                 WHERE id_usuario = $1
+                   AND fecha_entrada::date = $2::date
+                   AND COALESCE(salio, false) = false
+                   AND COALESCE("Borrado", false) = false
+                   AND ($3::integer IS NULL OR id != $3)`,
+                [id_usuario, fecha, excludeId]
+            );
+            return parseInt(result.rows[0].count, 10);
+        } catch (error) { console.error(error); return 0; }
+    }
+
     registrarSalidaWithClientAsync = async (id, client) => {
         const result = await client.query(
             'UPDATE reservas SET salio = true WHERE id = $1 AND COALESCE("Borrado", false) = false RETURNING *',

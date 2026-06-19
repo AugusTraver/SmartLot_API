@@ -27,6 +27,13 @@ export default class VehiculoRepository {
         } catch (error) { console.error(error); return null; }
     }
 
+    getByPatenteIncludingDeletedAsync = async (patente) => {
+        try {
+            const result = await pool.query('SELECT * FROM vehiculos WHERE patente = $1', [patente]);
+            return result.rows[0] ?? null;
+        } catch (error) { console.error(error); return null; }
+    }
+
     createAsync = async (entity) => {
         try {
             const result = await pool.query(
@@ -41,6 +48,16 @@ export default class VehiculoRepository {
         try {
             const result = await pool.query(
                 'UPDATE vehiculos SET id_usuario = $1, id_modelo = $2, patente = $3 WHERE id = $4 AND COALESCE("Borrado", false) = false RETURNING *',
+                [entity.id_usuario, entity.id_modelo, entity.patente, id]
+            );
+            return result.rows[0] ?? null;
+        } catch (error) { console.error(error); return null; }
+    }
+
+    reactivateAsync = async (id, entity) => {
+        try {
+            const result = await pool.query(
+                'UPDATE vehiculos SET id_usuario = $1, id_modelo = $2, patente = $3, "Borrado" = false WHERE id = $4 RETURNING *',
                 [entity.id_usuario, entity.id_modelo, entity.patente, id]
             );
             return result.rows[0] ?? null;
