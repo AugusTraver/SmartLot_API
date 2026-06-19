@@ -6,6 +6,49 @@ export default class UsuarioRepository {
         console.log('Estoy en: UsuarioRepository.constructor()');
     }
 
+    createSessionAsync = async (usuario_id, token_version, refresh_token, expires_at) => {
+        try {
+            const result = await pool.query(
+                `INSERT INTO refresh_sessions (usuario_id, token_version, refresh_token, expires_at)
+                 VALUES ($1, $2, $3, $4) RETURNING id`,
+                [usuario_id, token_version, refresh_token, expires_at]
+            );
+            return result.rows[0].id;
+        } catch (error) {
+            console.error('Error en createSessionAsync:', error);
+            return null;
+        }
+    }
+
+    getSessionAsync = async (session_id) => {
+        try {
+            const result = await pool.query(
+                'SELECT * FROM refresh_sessions WHERE id = $1 AND expires_at > NOW()',
+                [session_id]
+            );
+            return result.rows[0] ?? null;
+        } catch (error) {
+            console.error('Error en getSessionAsync:', error);
+            return null;
+        }
+    }
+
+    deleteSessionAsync = async (session_id) => {
+        try {
+            await pool.query('DELETE FROM refresh_sessions WHERE id = $1', [session_id]);
+        } catch (error) {
+            console.error('Error en deleteSessionAsync:', error);
+        }
+    }
+
+    deleteUserSessionsAsync = async (usuario_id) => {
+        try {
+            await pool.query('DELETE FROM refresh_sessions WHERE usuario_id = $1', [usuario_id]);
+        } catch (error) {
+            console.error('Error en deleteUserSessionsAsync:', error);
+        }
+    }
+
     getAllAsync = async () => {
         try {
             const result = await pool.query(`

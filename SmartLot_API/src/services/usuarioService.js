@@ -90,26 +90,43 @@ export default class UsuarioService {
             }
         );
 
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        const sessionId = await this.repo.createSessionAsync(
+            usuario.id,
+            usuario.token_version,
+            refreshToken,
+            expiresAt
+        );
+
         return {
             usuario: usuarioSinContraseña,
             access_token: accessToken,
-            refresh_token: refreshToken,
+            refresh_session_id: sessionId,
             token_type: 'Bearer',
             expires_in: process.env.JWT_EXPIRES_IN || '15m'
         };
     }
 
-    refreshTokenAsync = async (refreshToken) => {
+    refreshTokenAsync = async (session_id) => {
+        const session = await this.repo.getSessionAsync(session_id);
+        if (!session) {
+            const error = new Error('Sesion invalida o expirada.');
+            error.statusCode = 401;
+            throw error;
+        }
+
         let decoded;
         try {
-            decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+            decoded = jwt.verify(session.refresh_token, process.env.JWT_REFRESH_SECRET);
         } catch {
+            await this.repo.deleteSessionAsync(session_id);
             const error = new Error('Refresh token invalido o expirado.');
             error.statusCode = 401;
             throw error;
         }
 
         if (decoded.type !== 'refresh') {
+            await this.repo.deleteSessionAsync(session_id);
             const error = new Error('Tipo de token incorrecto.');
             error.statusCode = 401;
             throw error;
@@ -117,12 +134,14 @@ export default class UsuarioService {
 
         const usuario = await this.repo.getByIdAsync(decoded.id);
         if (!usuario || usuario.activo === false) {
+            await this.repo.deleteSessionAsync(session_id);
             const error = new Error('Usuario no encontrado o desactivado.');
             error.statusCode = 401;
             throw error;
         }
 
         if (Number(usuario.token_version) !== Number(decoded.token_version)) {
+            await this.repo.deleteSessionAsync(session_id);
             const error = new Error('Refresh token revocado.');
             error.statusCode = 401;
             throw error;
@@ -153,9 +172,19 @@ export default class UsuarioService {
             }
         );
 
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        const newSessionId = await this.repo.createSessionAsync(
+            usuario.id,
+            usuario.token_version,
+            newRefreshToken,
+            expiresAt
+        );
+
+        await this.repo.deleteSessionAsync(session_id);
+
         return {
             access_token: newAccessToken,
-            refresh_token: newRefreshToken,
+            refresh_session_id: newSessionId,
             token_type: 'Bearer',
             expires_in: process.env.JWT_EXPIRES_IN || '15m'
         };
@@ -168,6 +197,7 @@ export default class UsuarioService {
             error.statusCode = 500;
             throw error;
         }
+        await this.repo.deleteUserSessionsAsync(id);
         return version;
     }
 

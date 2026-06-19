@@ -56,7 +56,7 @@ router.post('/login', authRateLimiter, async (req, res) => {
         maxAge: 15 * 60 * 1000
     });
 
-    res.cookie('refresh_token', data.refresh_token, {
+    res.cookie('refresh_session_id', data.refresh_session_id, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -74,13 +74,13 @@ router.post('/login', authRateLimiter, async (req, res) => {
 
 // REFRESH TOKEN
 router.post('/refresh', authRateLimiter, async (req, res) => {
-    const refreshToken = req.cookies?.refresh_token;
-    if (!refreshToken) {
-        return res.status(401).json({ error: true, message: 'No hay refresh token.', statusCode: 401 });
+    const sessionId = req.cookies?.refresh_session_id;
+    if (!sessionId) {
+        return res.status(401).json({ error: true, message: 'No hay sesion de refresco.', statusCode: 401 });
     }
 
     try {
-        const data = await svc.refreshTokenAsync(refreshToken);
+        const data = await svc.refreshTokenAsync(sessionId);
 
         res.cookie('access_token', data.access_token, {
             httpOnly: true,
@@ -89,7 +89,7 @@ router.post('/refresh', authRateLimiter, async (req, res) => {
             maxAge: 15 * 60 * 1000
         });
 
-        res.cookie('refresh_token', data.refresh_token, {
+        res.cookie('refresh_session_id', data.refresh_session_id, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
@@ -104,7 +104,7 @@ router.post('/refresh', authRateLimiter, async (req, res) => {
         });
     } catch (err) {
         res.clearCookie('access_token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
-        res.clearCookie('refresh_token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/api/usuario/refresh' });
+        res.clearCookie('refresh_session_id', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/api/usuario/refresh' });
         throwError(err.message, err.statusCode || 401);
     }
 });
@@ -128,7 +128,7 @@ router.post('/logout', (req, res) => {
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax'
     });
-    res.clearCookie('refresh_token', {
+    res.clearCookie('refresh_session_id', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',

@@ -25,7 +25,7 @@ const authMiddleware = (req, res, next) => {
         next();
     } catch (error) {
         res.clearCookie('access_token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
-        res.clearCookie('refresh_token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/api/usuario/refresh' });
+        res.clearCookie('refresh_session_id', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/api/usuario/refresh' });
         return res.status(401).json({ error: true, message: 'Token invalido o expirado.', statusCode: 401 });
     }
 };

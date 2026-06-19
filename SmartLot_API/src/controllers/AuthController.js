@@ -27,13 +27,13 @@ const REFRESH_COOKIE_OPTIONS = {
   maxAge: 30 * 24 * 60 * 60 * 1000,
 };
 
-function setAuthCookies(res, accessToken, refreshToken) {
+function setAuthCookies(res, accessToken, refreshSessionId) {
   res.cookie('access_token', accessToken, {
     ...AUTH_COOKIE_OPTIONS,
     maxAge: 15 * 60 * 1000,
   });
 
-  res.cookie('refresh_token', refreshToken, REFRESH_COOKIE_OPTIONS);
+  res.cookie('refresh_session_id', refreshSessionId, REFRESH_COOKIE_OPTIONS);
 }
 
 function signTokens(usuario) {
@@ -57,6 +57,29 @@ function signTokens(usuario) {
   );
 
   return { accessToken, refreshToken };
+}
+
+async function createSession(usuario) {
+  const { refreshToken } = signTokens(usuario);
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const sessionId = await repo.createSessionAsync(
+    usuario.id,
+    usuario.token_version,
+    refreshToken,
+    expiresAt
+  );
+  return { sessionId, accessToken: jwt.sign(
+    {
+      id: usuario.id,
+      email: usuario.email,
+      id_rol: usuario.id_rol,
+      id_empresa: usuario.id_empresa,
+      id_sede: usuario.id_sede,
+      token_version: usuario.token_version,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || '15m' },
+  ) };
 }
 
 router.get('/google', (req, res) => {
@@ -102,9 +125,9 @@ router.post('/google/callback', async (req, res, next) => {
       throwError('Cuenta desactivada.', 403);
     }
 
-    const { accessToken, refreshToken } = signTokens(usuario);
+    const { sessionId, accessToken } = await createSession(usuario);
 
-    setAuthCookies(res, accessToken, refreshToken);
+    setAuthCookies(res, accessToken, sessionId);
 
     const { contraseña, ...usuarioSinContraseña } = usuario;
 
