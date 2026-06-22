@@ -13,6 +13,7 @@ import RolController       from "./controllers/rolController.js"
 import SedeController      from "./controllers/sedeController.js"
 import UsuarioController   from "./controllers/usuarioController.js"
 import VehiculoController  from "./controllers/vehiculoController.js"
+import ConflictoController from "./controllers/conflictoController.js"
 import AuthController      from "./controllers/AuthController.js"
 import authMiddleware      from "./middlewares/authMiddleware.js"
 import errorHandler       from "./middlewares/errorHandler.js"
@@ -43,6 +44,7 @@ app.use("/api/sede", authMiddleware, SedeController);
 app.use("/api/usuario", UsuarioController);
 app.use("/api/vehiculo", authMiddleware, VehiculoController);
 app.use("/api/auth", AuthController);
+app.use("/api/conflicto", authMiddleware, ConflictoController);
 
 app.use(errorHandler);
 
