@@ -39,6 +39,16 @@ router.get('/disponibilidad-por-hora', async (req, res) => {
     res.status(200).json(data);
 });
 
+// GET BY USER
+router.get('/usuario/:id_usuario', async (req, res) => {
+    const id_usuario = parseInt(req.params.id_usuario);
+    if (isNaN(id_usuario)) throwError('El ID de usuario no es válido.', 400);
+
+    const data = await svc.getByUsuarioWithDetailsAsync(id_usuario);
+    if (!data) throwError('Error interno del servidor', 500);
+    res.status(200).json(data);
+});
+
 // GET BY ID
 router.get('/:id', async (req, res) => {
     const id = parseInt(req.params.id);

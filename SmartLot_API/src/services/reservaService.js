@@ -25,6 +25,65 @@ export default class ReservaService {
 
     getByUsuarioAsync = async (id_usuario) => await this.repo.getByUsuarioAsync(id_usuario);
 
+    getByUsuarioWithDetailsAsync = async (id_usuario) => {
+        const rows = await this.repo.getByUsuarioWithDetailsAsync(id_usuario);
+        if (!rows) return null;
+
+        return rows.map((r) => {
+            const fechaEntrada = r.fecha_entrada ? new Date(r.fecha_entrada) : null;
+            const fechaSalida = r.fecha_salida ? new Date(r.fecha_salida) : null;
+
+            const pad = (n) => String(n).padStart(2, "0");
+
+            const fechaStr = fechaEntrada
+                ? `${fechaEntrada.getFullYear()}-${pad(fechaEntrada.getMonth() + 1)}-${pad(fechaEntrada.getDate())}`
+                : null;
+
+            const horaEntrada = fechaEntrada
+                ? `${pad(fechaEntrada.getHours())}:${pad(fechaEntrada.getMinutes())}`
+                : null;
+
+            const horaSalida = fechaSalida
+                ? `${pad(fechaSalida.getHours())}:${pad(fechaSalida.getMinutes())}`
+                : null;
+
+            const nombreZona = r.garage_piso || r.garage_ubicacion || null;
+            const nroPlaza = r.garage_ubicacion || null;
+
+            const entrada = !!r.entro;
+            const salida = !!r.salio;
+            const borrado = !!r.Borrado;
+
+            let estado = "Registro";
+            if (borrado) {
+                estado = "Cancelada";
+            } else if (entrada && salida) {
+                estado = "Completada";
+            }
+
+            return {
+                id_reserva: r.id,
+                id: r.id,
+                id_usuario: r.id_usuario,
+                fecha: fechaStr,
+                hora_entrada: horaEntrada,
+                hora_salida: horaSalida,
+                nombre_garage: r.garage_nombre || null,
+                nombre_zona: nombreZona,
+                nro_plaza: nroPlaza,
+                entrada,
+                salida,
+                entro: r.entro,
+                salio: r.salio,
+                borrado,
+                estado,
+                vehiculo: r.patente
+                    ? { patente: r.patente, marca: r.marca_nombre, modelo: r.modelo_nombre }
+                    : null,
+            };
+        });
+    }
+
     usuarioTieneReservasActivasAsync = async (id_usuario) => {
         const reservas = await this.repo.getActivasByUsuarioAsync(id_usuario);
         return reservas !== null && reservas.length > 0;

@@ -6,7 +6,7 @@ class Reserva {
     fecha_entrada;
     fecha_salida;
     entro;
-    salio;
+    salio;  
     Borrado;
     dia;
 }

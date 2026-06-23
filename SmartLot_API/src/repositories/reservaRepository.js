@@ -33,6 +33,39 @@ export default class ReservaRepository {
         } catch (error) { console.error(error); return null; }
     }
 
+    getByUsuarioWithDetailsAsync = async (id_usuario) => {
+        try {
+            const result = await pool.query(
+                `SELECT
+                    r.id,
+                    r.id_usuario,
+                    r.id_garage,
+                    r.id_vehiculo,
+                    r.fecha_entrada,
+                    r.fecha_salida,
+                    r.entro,
+                    r.salio,
+                    r.dia,
+                    r."Borrado",
+                    g.nombre AS garage_nombre,
+                    g.piso AS garage_piso,
+                    g.ubicacion AS garage_ubicacion,
+                    v.patente,
+                    mo.nombre AS modelo_nombre,
+                    ma.nombre AS marca_nombre
+                 FROM reservas r
+                 LEFT JOIN garages g ON r.id_garage = g.id
+                 LEFT JOIN vehiculos v ON r.id_vehiculo = v.id
+                 LEFT JOIN modelos mo ON v.id_modelo = mo.id
+                 LEFT JOIN marcas ma ON mo.id_marca = ma.id
+                  WHERE r.id_usuario = $1
+                  ORDER BY r.fecha_entrada DESC`,
+                [id_usuario]
+            );
+            return result.rows;
+        } catch (error) { console.error(error); return null; }
+    }
+
     getActivasByUsuarioAsync = async (id_usuario) => {
         try {
             const result = await pool.query(
