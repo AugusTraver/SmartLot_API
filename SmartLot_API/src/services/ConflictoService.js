@@ -9,7 +9,10 @@ export default class ConflictoService {
         this.usuarioService = new UsuarioService();
     }
 
-    getAllAsync = async () => await this.repo.getAllAsync();
+    getAllAsync = async (superAdmin = false) => await this.repo.getAllAsync(superAdmin);
+
+    getDeletedByUserAsync = async (deletedBy, superAdmin = false) =>
+        await this.repo.getDeletedByUserAsync(deletedBy, superAdmin);
 
     getByIdAsync = async (id) => await this.repo.getByIdAsync(id);
 
@@ -23,7 +26,9 @@ export default class ConflictoService {
         return await this.repo.updateAsync(id, entity);
     }
 
-    deleteAsync = async (id) => await this.repo.deleteAsync(id);
+    deleteAsync = async (id, deletedBy = null) => await this.repo.deleteAsync(id, deletedBy);
+
+    restoreAsync = async (id, deletedBy = null) => await this.repo.restoreAsync(id, deletedBy);
 
     _validarRelacionesAsync = async (entity) => {
         if (entity.id_usuario) {

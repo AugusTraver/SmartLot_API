@@ -16,9 +16,21 @@ function throwError(message, statusCode) {
     throw error;
 }
 
+const parseBooleanQuery = (value) => value === true || value === 'true' || value === '1';
+const getRequestUserId = (req) => req.usuario?.id ?? req.usuario?.id_usuario ?? req.usuario?.usuario_id;
+
 // GET ALL
 router.get('', requireRole(1, 4), async (req, res) => {
-    const data = await svc.getAllAsync();
+    const superAdmin = parseBooleanQuery(req.query.superAdmin);
+    const data = await svc.getAllAsync(superAdmin);
+    if (!data) throwError('Error interno del servidor', 500);
+    res.status(200).json(data);
+});
+
+// GET DELETED BY CURRENT ADMIN
+router.get('/papelera', requireRole(1, 4), async (req, res) => {
+    const superAdmin = parseBooleanQuery(req.query.superAdmin);
+    const data = await svc.getDeletedByUserAsync(getRequestUserId(req), superAdmin);
     if (!data) throwError('Error interno del servidor', 500);
     res.status(200).json(data);
 });
@@ -26,7 +38,7 @@ router.get('', requireRole(1, 4), async (req, res) => {
 // GET BY ID
 router.get('/:id', requireRole(1, 4), async (req, res) => {
     const id = parseInt(req.params.id);
-    if (isNaN(id)) throwError('El ID proporcionado no es válido.', 400);
+    if (isNaN(id)) throwError('El ID proporcionado no es valido.', 400);
 
     const data = await svc.getByIdAsync(id);
     if (!data) throwError('No encontrado.', 404);
@@ -36,15 +48,28 @@ router.get('/:id', requireRole(1, 4), async (req, res) => {
 // CREATE (POST)
 router.post('', requireRole(1, 2, 4), async (req, res) => {
     if (Number(req.usuario?.id_rol) === 2) {
-        req.body.id_usuario = req.usuario.id;
+        req.body.id_usuario = getRequestUserId(req);
+        req.body.SuperAdmin = false;
     }
 
-    const { id_usuario, descripcion, prioridad } = req.body;
+    if (Number(req.usuario?.id_rol) === 1) {
+        req.body.id_usuario = getRequestUserId(req);
+        req.body.SuperAdmin = true;
+    }
 
-    if (!isValidId(String(id_usuario))) throwError('El id_usuario es requerido y debe ser un número válido.', 400);
-    if (!isValidString(descripcion)) throwError('La descripción es requerida.', 400);
+    if (Number(req.usuario?.id_rol) === 4 && !req.body.id_usuario) {
+        req.body.id_usuario = getRequestUserId(req);
+    }
+
+    const { id_usuario, descripcion, prioridad, SuperAdmin } = req.body;
+
+    if (!isValidId(String(id_usuario))) throwError('El id_usuario es requerido y debe ser un numero valido.', 400);
+    if (!isValidString(descripcion)) throwError('La descripcion es requerida.', 400);
     if (!prioridad || !PRIORIDADES_VALIDAS.includes(prioridad)) {
         throwError(`La prioridad debe ser una de: ${PRIORIDADES_VALIDAS.join(', ')}.`, 400);
+    }
+    if (SuperAdmin !== undefined && typeof SuperAdmin !== 'boolean') {
+        throwError('SuperAdmin debe ser un valor booleano.', 400);
     }
 
     const data = await svc.createAsync(req.body);
@@ -54,21 +79,24 @@ router.post('', requireRole(1, 2, 4), async (req, res) => {
 
 // UPDATE (PUT)
 router.put('/:id', requireRole(1, 4), async (req, res) => {
-    if (!isValidId(req.params.id)) throwError('El ID proporcionado no es válido.', 400);
+    if (!isValidId(req.params.id)) throwError('El ID proporcionado no es valido.', 400);
 
-    const { id_usuario, descripcion, prioridad, estado } = req.body;
+    const { id_usuario, descripcion, prioridad, estado, SuperAdmin } = req.body;
 
     if (id_usuario !== undefined && !isValidId(String(id_usuario))) {
-        throwError('El id_usuario debe ser un número válido.', 400);
+        throwError('El id_usuario debe ser un numero valido.', 400);
     }
     if (descripcion !== undefined && !isValidString(descripcion)) {
-        throwError('La descripción no puede estar vacía.', 400);
+        throwError('La descripcion no puede estar vacia.', 400);
     }
     if (prioridad !== undefined && !PRIORIDADES_VALIDAS.includes(prioridad)) {
         throwError(`La prioridad debe ser una de: ${PRIORIDADES_VALIDAS.join(', ')}.`, 400);
     }
     if (estado !== undefined && !ESTADOS_VALIDOS.includes(estado)) {
         throwError(`El estado debe ser uno de: ${ESTADOS_VALIDOS.join(', ')}.`, 400);
+    }
+    if (SuperAdmin !== undefined && typeof SuperAdmin !== 'boolean') {
+        throwError('SuperAdmin debe ser un valor booleano.', 400);
     }
 
     const data = await svc.updateAsync(parseInt(req.params.id, 10), req.body);
@@ -79,11 +107,21 @@ router.put('/:id', requireRole(1, 4), async (req, res) => {
 // DELETE
 router.delete('/:id', requireRole(1, 4), async (req, res) => {
     const id = parseInt(req.params.id);
-    if (isNaN(id)) throwError('El ID proporcionado no es válido.', 400);
+    if (isNaN(id)) throwError('El ID proporcionado no es valido.', 400);
 
-    const ok = await svc.deleteAsync(id);
+    const ok = await svc.deleteAsync(id, getRequestUserId(req));
     if (!ok) throwError('No encontrado: El conflicto con ese ID no existe.', 404);
     res.status(200).json({ message: 'Eliminado exitosamente.' });
+});
+
+// RESTORE
+router.patch('/:id/restaurar', requireRole(1, 4), async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) throwError('El ID proporcionado no es valido.', 400);
+
+    const data = await svc.restoreAsync(id, getRequestUserId(req));
+    if (!data) throwError('No encontrado: El conflicto no existe en tu papelera.', 404);
+    res.status(200).json(data);
 });
 
 export default router;
