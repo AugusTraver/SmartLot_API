@@ -10,7 +10,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "db-test": "node ./src/database/db.js",
     "apptest": "node ./src/appTest.js",
-    "app": "node ./src/app.js"
+    "app": "node ./src/app.js",
+    "nodemailer": "set NODE_TLS_REJECT_UNAUTHORIZED=0&&node ./scripts/check_nodemailer.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.3",
@@ -23,6 +24,8 @@
     "express-rate-limit": "^8.5.2",
     "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.3",
+    "mailtrap": "^4.6.0",
+    "nodemailer": "^8.0.11",
     "pg": "^8.20.0",
     "routes": "^2.1.0"
   }
