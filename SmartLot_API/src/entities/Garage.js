@@ -5,6 +5,8 @@ class Garage {
     nombre;
     piso;
     ubicacion;
+    latitud;
+    longitud;
     estado;
     capacidad;
     capacidad_para_no_reservas;

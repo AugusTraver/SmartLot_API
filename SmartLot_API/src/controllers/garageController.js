@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import GarageService from './../services/garageService.js';
+import { obtenerGaragesCercanosConTiempoReal } from './../services/geolocalizacionService.js';
 import { isValidId, isValidString, isValidPositiveNumber, isValidTime, isValidDiaSemana } from '../helpers/validatorHelper.js';
 import { requireRole } from '../middlewares/rolesMiddleware.js';
 
@@ -49,9 +50,26 @@ router.get('/:id', async (req, res) => {
     res.status(200).json(data);
 });
 
+// GET CERCANOS - Garages cercanos con tiempos reales usando Distance Matrix
+router.get('/:id/cercanos', requireRole(1, 4), async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) throwError('El ID proporcionado no es válido.', 400);
+
+    const sede = await svc.sedeService.getByIdAsync(id);
+    if (!sede) throwError('Sede no encontrada.', 404);
+    if (!sede.latitud || !sede.longitud) throwError('La sede no tiene coordenadas registradas.', 400);
+
+    const garages = await obtenerGaragesCercanosConTiempoReal(
+        parseFloat(sede.latitud),
+        parseFloat(sede.longitud)
+    );
+
+    res.status(200).json(garages);
+});
+
 // CREATE (POST)
 router.post('', requireRole(1, 4), async (req, res) => {
-    const { id_sede, nombre, capacidad, estado, hora_apertura, hora_cierre, dias } = req.body;
+    const { id_sede, nombre, ubicacion, latitud, longitud, capacidad, estado, hora_apertura, hora_cierre, dias } = req.body;
     if (!isValidString(nombre)) throwError('El nombre es requerido.', 400);
     if (!isValidId(String(id_sede))) throwError('El id_sede es requerido y debe ser un número válido.', 400);
     if (!isValidPositiveNumber(capacidad)) throwError('La capacidad debe ser un número positivo.', 400);
@@ -72,7 +90,7 @@ router.post('', requireRole(1, 4), async (req, res) => {
 // UPDATE (PUT)
 router.put('/:id', requireRole(1, 4), async (req, res) => {
     if (!isValidId(req.params.id)) throwError('El ID proporcionado no es válido.', 400);
-    const { id_sede, nombre, capacidad, estado, hora_apertura, hora_cierre, dias } = req.body;
+    const { id_sede, nombre, ubicacion, latitud, longitud, capacidad, estado, hora_apertura, hora_cierre, dias } = req.body;
     if (nombre !== undefined && !isValidString(nombre)) throwError('El nombre no puede estar vacío.', 400);
     if (id_sede !== undefined && !isValidId(String(id_sede))) throwError('El id_sede debe ser un número válido.', 400);
     if (capacidad !== undefined && !isValidPositiveNumber(capacidad)) throwError('La capacidad debe ser un número positivo.', 400);

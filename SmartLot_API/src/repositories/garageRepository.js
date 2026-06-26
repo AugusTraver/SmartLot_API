@@ -58,9 +58,9 @@ export default class GarageRepository {
     createAsync = async (entity) => {
         try {
             const result = await pool.query(
-                `INSERT INTO garages (id_sede, nombre, piso, ubicacion, estado, capacidad, capacidad_para_no_reservas, capacidad_reservas, ocupacion_reservas, ocupacion_no_reservas, hora_apertura, hora_cierre)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
-                [entity.id_sede, entity.nombre, entity.piso, entity.ubicacion, entity.estado,
+                `INSERT INTO garages (id_sede, nombre, piso, ubicacion, latitud, longitud, estado, capacidad, capacidad_para_no_reservas, capacidad_reservas, ocupacion_reservas, ocupacion_no_reservas, hora_apertura, hora_cierre)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
+                [entity.id_sede, entity.nombre, entity.piso, entity.ubicacion, entity.latitud ?? null, entity.longitud ?? null, entity.estado,
                 entity.capacidad, entity.capacidad_para_no_reservas, entity.capacidad_reservas, entity.ocupacion_reservas, entity.ocupacion_no_reservas,
                 entity.hora_apertura, entity.hora_cierre]
             );
@@ -88,15 +88,17 @@ export default class GarageRepository {
                 nombre=$2, 
                 piso=$3, 
                 ubicacion=$4, 
-                estado=$5,
-                capacidad=$6, 
-                capacidad_para_no_reservas=$7, 
-                capacidad_reservas=$8, 
-                ocupacion_reservas = $9, 
-                ocupacion_no_reservas = $10,
-                hora_apertura=$11,
-                hora_cierre=$12
-             WHERE id=$13
+                latitud=$5,
+                longitud=$6,
+                estado=$7,
+                capacidad=$8, 
+                capacidad_para_no_reservas=$9, 
+                capacidad_reservas=$10, 
+                ocupacion_reservas = $11, 
+                ocupacion_no_reservas = $12,
+                hora_apertura=$13,
+                hora_cierre=$14
+             WHERE id=$15
                AND COALESCE("Borrado", false) = false
              RETURNING *`,
             [
@@ -104,6 +106,8 @@ export default class GarageRepository {
                 entity.nombre, 
                 entity.piso, 
                 entity.ubicacion, 
+                entity.latitud ?? null,
+                entity.longitud ?? null,
                 entity.estado,
                 entity.capacidad, 
                 entity.capacidad_para_no_reservas, 
@@ -239,5 +243,32 @@ export default class GarageRepository {
             );
             return result.rowCount > 0;
         } catch (error) { console.error(error); return false; }
+    }
+
+    getCercanosAsync = async (lat, lng, radioKm) => {
+        try {
+            const result = await pool.query(`
+                SELECT *, (
+                    6371 * acos(
+                        cos(radians($1)) * cos(radians(latitud)) *
+                        cos(radians(longitud) - radians($2)) +
+                        sin(radians($1)) * sin(radians(latitud))
+                    )
+                ) AS distance
+                FROM garages
+                WHERE latitud IS NOT NULL
+                  AND longitud IS NOT NULL
+                  AND COALESCE("Borrado", false) = false
+                  AND (
+                    6371 * acos(
+                        cos(radians($1)) * cos(radians(latitud)) *
+                        cos(radians(longitud) - radians($2)) +
+                        sin(radians($1)) * sin(radians(latitud))
+                    )
+                  ) < $3
+                ORDER BY distance
+            `, [lat, lng, radioKm]);
+            return result.rows;
+        } catch (error) { console.error(error); return null; }
     }
 }

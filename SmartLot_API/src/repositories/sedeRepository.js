@@ -23,8 +23,8 @@ export default class SedeRepository {
     createAsync = async (entity) => {
         try {
             const result = await pool.query(
-                'INSERT INTO sedes (id_empresa, nombre, descripcion, ubicacion) VALUES ($1, $2, $3, $4) RETURNING *',
-                [entity.id_empresa, entity.nombre, entity.descripcion, entity.ubicacion]
+                'INSERT INTO sedes (id_empresa, nombre, descripcion, ubicacion, latitud, longitud) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+                [entity.id_empresa, entity.nombre, entity.descripcion, entity.ubicacion, entity.latitud ?? null, entity.longitud ?? null]
             );
             return result.rows[0];
         } catch (error) { console.error(error); return null; }
@@ -33,8 +33,8 @@ export default class SedeRepository {
     updateAsync = async (id, entity) => {
         try {
             const result = await pool.query(
-                'UPDATE sedes SET id_empresa = $1, nombre = $2, descripcion = $3, ubicacion = $4 WHERE id = $5 AND COALESCE("Borrado", false) = false RETURNING *',
-                [entity.id_empresa, entity.nombre, entity.descripcion, entity.ubicacion, id]
+                'UPDATE sedes SET id_empresa = $1, nombre = $2, descripcion = $3, ubicacion = $4, latitud = $5, longitud = $6 WHERE id = $7 AND COALESCE("Borrado", false) = false RETURNING *',
+                [entity.id_empresa, entity.nombre, entity.descripcion, entity.ubicacion, entity.latitud ?? null, entity.longitud ?? null, id]
             );
             return result.rows[0] ?? null;
         } catch (error) { console.error(error); return null; }

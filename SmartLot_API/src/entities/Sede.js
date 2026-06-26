@@ -4,6 +4,8 @@ class Sede {
     nombre;
     descripcion;
     ubicacion;
+    latitud;
+    longitud;
     Borrado;
 }
 
