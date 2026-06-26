@@ -1,12 +1,14 @@
 const { MailtrapClient } = require("mailtrap");
 
-const TOKEN = "fcf445c3c7602352f2df6c36390f314d";
+ require('dotenv').config();
+
+const TOKEN =  process.env.NODEMAILER_TOKEN;
 
 const client = new MailtrapClient({ token: TOKEN });
 
 const sender = {
   email: "hello@demomailtrap.co",
-  name: "Mailtrap Test",
+  name: "Smartlot Company",
 };
 const recipients = [
   { email: "49123639@est.ort.edu.ar" },
