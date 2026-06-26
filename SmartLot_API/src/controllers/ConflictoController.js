@@ -18,11 +18,19 @@ function throwError(message, statusCode) {
 
 const parseBooleanQuery = (value) => value === true || value === 'true' || value === '1';
 const getRequestUserId = (req) => req.usuario?.id ?? req.usuario?.id_usuario ?? req.usuario?.usuario_id;
+const isRequestSuperadmin = (req) => Number(req.usuario?.id_rol) === 4;
+
+const validateSuperadminScope = (req, superAdmin) => {
+    if (superAdmin && !isRequestSuperadmin(req)) {
+        throwError('No autorizado para consultar conflictos de superadmin.', 403);
+    }
+};
 
 // GET ALL
 router.get('', requireRole(1, 4), async (req, res) => {
     const superAdmin = parseBooleanQuery(req.query.superAdmin);
-    const data = await svc.getAllAsync(superAdmin);
+    validateSuperadminScope(req, superAdmin);
+    const data = await svc.getAllAsync(superAdmin, req.usuario);
     if (!data) throwError('Error interno del servidor', 500);
     res.status(200).json(data);
 });
@@ -30,7 +38,8 @@ router.get('', requireRole(1, 4), async (req, res) => {
 // GET DELETED BY CURRENT ADMIN
 router.get('/papelera', requireRole(1, 4), async (req, res) => {
     const superAdmin = parseBooleanQuery(req.query.superAdmin);
-    const data = await svc.getDeletedByUserAsync(getRequestUserId(req), superAdmin);
+    validateSuperadminScope(req, superAdmin);
+    const data = await svc.getDeletedByUserAsync(getRequestUserId(req), superAdmin, req.usuario);
     if (!data) throwError('Error interno del servidor', 500);
     res.status(200).json(data);
 });
@@ -40,7 +49,7 @@ router.get('/:id', requireRole(1, 4), async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) throwError('El ID proporcionado no es valido.', 400);
 
-    const data = await svc.getByIdAsync(id);
+    const data = await svc.getByIdAsync(id, req.usuario);
     if (!data) throwError('No encontrado.', 404);
     res.status(200).json(data);
 });
@@ -99,7 +108,7 @@ router.put('/:id', requireRole(1, 4), async (req, res) => {
         throwError('SuperAdmin debe ser un valor booleano.', 400);
     }
 
-    const data = await svc.updateAsync(parseInt(req.params.id, 10), req.body);
+    const data = await svc.updateAsync(parseInt(req.params.id, 10), req.body, req.usuario);
     if (!data) throwError('No encontrado: El conflicto con ese ID no existe.', 404);
     res.status(200).json(data);
 });
@@ -109,7 +118,7 @@ router.delete('/:id', requireRole(1, 4), async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) throwError('El ID proporcionado no es valido.', 400);
 
-    const ok = await svc.deleteAsync(id, getRequestUserId(req));
+    const ok = await svc.deleteAsync(id, getRequestUserId(req), req.usuario);
     if (!ok) throwError('No encontrado: El conflicto con ese ID no existe.', 404);
     res.status(200).json({ message: 'Eliminado exitosamente.' });
 });
@@ -119,7 +128,7 @@ router.patch('/:id/restaurar', requireRole(1, 4), async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) throwError('El ID proporcionado no es valido.', 400);
 
-    const data = await svc.restoreAsync(id, getRequestUserId(req));
+    const data = await svc.restoreAsync(id, getRequestUserId(req), req.usuario);
     if (!data) throwError('No encontrado: El conflicto no existe en tu papelera.', 404);
     res.status(200).json(data);
 });

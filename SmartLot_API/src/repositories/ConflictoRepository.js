@@ -21,52 +21,90 @@ const getSuperAdminColumnAsync = async () => {
     return superAdminColumnCache;
 };
 
+const isPositiveNumber = (value) => {
+    const number = Number(value);
+    return Number.isFinite(number) && number > 0;
+};
+
+const getTenantCondition = (requestingUser, firstParamIndex = 2, userAlias = 'u') => {
+    if (Number(requestingUser?.id_rol) === 4) {
+        return { sql: '', params: [] };
+    }
+
+    const idSede = requestingUser?.id_sede ?? requestingUser?.idSede;
+    if (isPositiveNumber(idSede)) {
+        return {
+            sql: ` AND ${userAlias}.id_sede = $${firstParamIndex}`,
+            params: [Number(idSede)],
+        };
+    }
+
+    const idEmpresa = requestingUser?.id_empresa ?? requestingUser?.idEmpresa;
+    if (isPositiveNumber(idEmpresa)) {
+        return {
+            sql: ` AND ${userAlias}.id_empresa = $${firstParamIndex}`,
+            params: [Number(idEmpresa)],
+        };
+    }
+
+    return { sql: ' AND false', params: [] };
+};
+
 export default class ConflictoRepository {
     constructor() {
         console.log('Estoy en: ConflictoRepository.constructor()');
     }
 
-    getAllAsync = async (superAdmin = false) => {
+    getAllAsync = async (superAdmin = false, requestingUser = null) => {
         try {
             const superAdminColumn = await getSuperAdminColumnAsync();
-            const superAdminExpression = superAdminColumn ? `COALESCE(${quoteIdentifier(superAdminColumn)}, false)` : 'false';
+            const superAdminExpression = superAdminColumn ? `COALESCE(c.${quoteIdentifier(superAdminColumn)}, false)` : 'false';
+            const tenant = getTenantCondition(requestingUser, 2, 'u');
             const result = await pool.query(
-                `SELECT *
-                 FROM conflictos
-                 WHERE COALESCE("Borrado", false) = false
+                `SELECT c.*
+                 FROM conflictos c
+                 INNER JOIN usuarios u ON u.id = c.id_usuario
+                 WHERE COALESCE(c."Borrado", false) = false
                    AND ${superAdminExpression} = $1
-                 ORDER BY id`,
-                [superAdmin]
+                   ${tenant.sql}
+                 ORDER BY c.id`,
+                [superAdmin, ...tenant.params]
             );
             return result.rows;
         } catch (error) { console.error(error); return null; }
     }
 
-    getDeletedByUserAsync = async (deletedBy, superAdmin = false) => {
+    getDeletedByUserAsync = async (deletedBy, superAdmin = false, requestingUser = null) => {
         try {
             const superAdminColumn = await getSuperAdminColumnAsync();
-            const superAdminExpression = superAdminColumn ? `COALESCE(${quoteIdentifier(superAdminColumn)}, false)` : 'false';
+            const superAdminExpression = superAdminColumn ? `COALESCE(c.${quoteIdentifier(superAdminColumn)}, false)` : 'false';
+            const tenant = getTenantCondition(requestingUser, 3, 'u');
             const result = await pool.query(
-                `SELECT *
-                 FROM conflictos
-                 WHERE COALESCE("Borrado", false) = true
+                `SELECT c.*
+                 FROM conflictos c
+                 INNER JOIN usuarios u ON u.id = c.id_usuario
+                 WHERE COALESCE(c."Borrado", false) = true
                    AND ${superAdminExpression} = $1
-                   AND "DeleteBy" = $2
-                 ORDER BY "DeleteAt" DESC NULLS LAST, id DESC`,
-                [superAdmin, deletedBy]
+                   AND c."DeleteBy" = $2
+                   ${tenant.sql}
+                 ORDER BY c."DeleteAt" DESC NULLS LAST, c.id DESC`,
+                [superAdmin, deletedBy, ...tenant.params]
             );
             return result.rows;
         } catch (error) {
             if (error.code === '42703') {
                 const superAdminColumn = await getSuperAdminColumnAsync();
-                const superAdminExpression = superAdminColumn ? `COALESCE(${quoteIdentifier(superAdminColumn)}, false)` : 'false';
+                const superAdminExpression = superAdminColumn ? `COALESCE(c.${quoteIdentifier(superAdminColumn)}, false)` : 'false';
+                const tenant = getTenantCondition(requestingUser, 2, 'u');
                 const result = await pool.query(
-                    `SELECT *
-                     FROM conflictos
-                     WHERE COALESCE("Borrado", false) = true
+                    `SELECT c.*
+                     FROM conflictos c
+                     INNER JOIN usuarios u ON u.id = c.id_usuario
+                     WHERE COALESCE(c."Borrado", false) = true
                        AND ${superAdminExpression} = $1
-                     ORDER BY id DESC`,
-                    [superAdmin]
+                       ${tenant.sql}
+                     ORDER BY c.id DESC`,
+                    [superAdmin, ...tenant.params]
                 );
                 return result.rows;
             }
@@ -76,9 +114,18 @@ export default class ConflictoRepository {
         }
     }
 
-    getByIdAsync = async (id) => {
+    getByIdAsync = async (id, requestingUser = null) => {
         try {
-            const result = await pool.query('SELECT * FROM conflictos WHERE id = $1 AND COALESCE("Borrado", false) = false', [id]);
+            const tenant = getTenantCondition(requestingUser, 2, 'u');
+            const result = await pool.query(
+                `SELECT c.*
+                 FROM conflictos c
+                 INNER JOIN usuarios u ON u.id = c.id_usuario
+                 WHERE c.id = $1
+                   AND COALESCE(c."Borrado", false) = false
+                   ${tenant.sql}`,
+                [id, ...tenant.params]
+            );
             return result.rows[0] ?? null;
         } catch (error) { console.error(error); return null; }
     }
@@ -110,67 +157,83 @@ export default class ConflictoRepository {
         } catch (error) { console.error(error); return null; }
     }
 
-    updateAsync = async (id, entity) => {
+    updateAsync = async (id, entity, requestingUser = null) => {
         try {
+            const tenant = getTenantCondition(requestingUser, 6, 'u');
             const superAdminColumn = await getSuperAdminColumnAsync();
             if (!superAdminColumn) {
                 const result = await pool.query(
-                    `UPDATE conflictos
+                    `UPDATE conflictos c
                      SET id_usuario = $1,
                          descripcion = $2,
                          prioridad = $3,
                          estado = $4
-                     WHERE id = $5
-                       AND COALESCE("Borrado", false) = false
-                     RETURNING *`,
-                    [entity.id_usuario, entity.descripcion, entity.prioridad, entity.estado, id]
+                     FROM usuarios u
+                     WHERE c.id = $5
+                       AND u.id = c.id_usuario
+                       AND COALESCE(c."Borrado", false) = false
+                       ${tenant.sql}
+                     RETURNING c.*`,
+                    [entity.id_usuario, entity.descripcion, entity.prioridad, entity.estado, id, ...tenant.params]
                 );
                 return result.rows[0] ?? null;
             }
 
             const result = await pool.query(
-                `UPDATE conflictos
+                `UPDATE conflictos c
                  SET id_usuario = $1,
                      descripcion = $2,
                      prioridad = $3,
                      estado = $4,
                      ${quoteIdentifier(superAdminColumn)} = $5
-                 WHERE id = $6
-                   AND COALESCE("Borrado", false) = false
-                 RETURNING *`,
+                 FROM usuarios u
+                 WHERE c.id = $6
+                   AND u.id = c.id_usuario
+                   AND COALESCE(c."Borrado", false) = false
+                   ${tenant.sql}
+                 RETURNING c.*`,
                 [
                     entity.id_usuario,
                     entity.descripcion,
                     entity.prioridad,
                     entity.estado,
                     entity.SuperAdmin === true,
-                    id
+                    id,
+                    ...tenant.params
                 ]
             );
             return result.rows[0] ?? null;
         } catch (error) { console.error(error); return null; }
     }
 
-    deleteAsync = async (id, deletedBy = null) => {
+    deleteAsync = async (id, deletedBy = null, requestingUser = null) => {
         try {
+            const tenant = getTenantCondition(requestingUser, 3, 'u');
             const result = await pool.query(
-                `UPDATE conflictos
+                `UPDATE conflictos c
                  SET "Borrado" = true,
                      "DeleteBy" = $2,
                      "DeleteAt" = NOW()
-                 WHERE id = $1
-                   AND COALESCE("Borrado", false) = false`,
-                [id, deletedBy]
+                 FROM usuarios u
+                 WHERE c.id = $1
+                   AND u.id = c.id_usuario
+                   AND COALESCE(c."Borrado", false) = false
+                   ${tenant.sql}`,
+                [id, deletedBy, ...tenant.params]
             );
             return result.rowCount > 0;
         } catch (error) {
             if (error.code === '42703') {
+                const tenant = getTenantCondition(requestingUser, 2, 'u');
                 const result = await pool.query(
-                    `UPDATE conflictos
+                    `UPDATE conflictos c
                      SET "Borrado" = true
-                     WHERE id = $1
-                       AND COALESCE("Borrado", false) = false`,
-                    [id]
+                     FROM usuarios u
+                     WHERE c.id = $1
+                       AND u.id = c.id_usuario
+                       AND COALESCE(c."Borrado", false) = false
+                       ${tenant.sql}`,
+                    [id, ...tenant.params]
                 );
                 return result.rowCount > 0;
             }
@@ -180,29 +243,37 @@ export default class ConflictoRepository {
         }
     }
 
-    restoreAsync = async (id, deletedBy = null) => {
+    restoreAsync = async (id, deletedBy = null, requestingUser = null) => {
         try {
+            const tenant = getTenantCondition(requestingUser, 3, 'u');
             const result = await pool.query(
-                `UPDATE conflictos
+                `UPDATE conflictos c
                  SET "Borrado" = false,
                      "DeleteBy" = NULL,
                      "DeleteAt" = NULL
-                 WHERE id = $1
-                   AND COALESCE("Borrado", false) = true
-                   AND ($2::int IS NULL OR "DeleteBy" = $2)
-                 RETURNING *`,
-                [id, deletedBy]
+                 FROM usuarios u
+                 WHERE c.id = $1
+                   AND u.id = c.id_usuario
+                   AND COALESCE(c."Borrado", false) = true
+                   AND ($2::int IS NULL OR c."DeleteBy" = $2)
+                   ${tenant.sql}
+                 RETURNING c.*`,
+                [id, deletedBy, ...tenant.params]
             );
             return result.rows[0] ?? null;
         } catch (error) {
             if (error.code === '42703') {
+                const tenant = getTenantCondition(requestingUser, 2, 'u');
                 const result = await pool.query(
-                    `UPDATE conflictos
+                    `UPDATE conflictos c
                      SET "Borrado" = false
-                     WHERE id = $1
-                       AND COALESCE("Borrado", false) = true
-                     RETURNING *`,
-                    [id]
+                     FROM usuarios u
+                     WHERE c.id = $1
+                       AND u.id = c.id_usuario
+                       AND COALESCE(c."Borrado", false) = true
+                       ${tenant.sql}
+                     RETURNING c.*`,
+                    [id, ...tenant.params]
                 );
                 return result.rows[0] ?? null;
             }
