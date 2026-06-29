@@ -3,6 +3,36 @@ import GarageRepository from '../repositories/garageRepository.js';
 
 const RADIO_KM = 50;
 
+export const obtenerDistanciaEntrePuntos = async (origenLat, origenLng, destLat, destLng) => {
+    const apiKey = process.env.GOOGLE_MAPS_BACKEND_KEY;
+
+    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origenLat},${origenLng}&destinations=${destLat},${destLng}&key=${apiKey}`;
+
+    try {
+        const response = await axios.get(url);
+        const element = response.data.rows[0].elements[0];
+
+        return {
+            distanciaTexto: element?.distance?.text || null,
+            distanciaValor: element?.distance?.value || null,
+            duracionTexto: element?.duration?.text || null,
+            duracionValor: element?.duration?.value || null,
+            origen: { lat: parseFloat(origenLat), lng: parseFloat(origenLng) },
+            destino: { lat: parseFloat(destLat), lng: parseFloat(destLng) },
+        };
+    } catch (error) {
+        console.error('Error consultando Distance Matrix:', error.message);
+        return {
+            distanciaTexto: null,
+            distanciaValor: null,
+            duracionTexto: null,
+            duracionValor: null,
+            origen: { lat: parseFloat(origenLat), lng: parseFloat(origenLng) },
+            destino: { lat: parseFloat(destLat), lng: parseFloat(destLng) },
+        };
+    }
+};
+
 export const obtenerGaragesCercanosConTiempoReal = async (sedeLat, sedeLng) => {
     const repo = new GarageRepository();
     const garages = await repo.getCercanosAsync(sedeLat, sedeLng, RADIO_KM);

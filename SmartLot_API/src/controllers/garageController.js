@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import GarageService from './../services/garageService.js';
-import { obtenerGaragesCercanosConTiempoReal } from './../services/geolocalizacionService.js';
+import { obtenerGaragesCercanosConTiempoReal, obtenerDistanciaEntrePuntos } from './../services/geolocalizacionService.js';
 import { isValidId, isValidString, isValidPositiveNumber, isValidTime, isValidDiaSemana } from '../helpers/validatorHelper.js';
 import { requireRole } from '../middlewares/rolesMiddleware.js';
 
@@ -65,6 +65,50 @@ router.get('/:id/cercanos', requireRole(1, 4), async (req, res) => {
     );
 
     res.status(200).json(garages);
+});
+
+// GET DISTANCIA A SEDE - Distancia y tiempo entre garage y su sede usando Distance Matrix
+router.get('/:id/distancia-sede', async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) throwError('El ID proporcionado no es válido.', 400);
+
+    const garage = await svc.getByIdAsync(id);
+    if (!garage) {
+        console.error(`distancia-sede: garage ${id} no encontrado (usuario ${req.usuario?.id})`);
+        throwError('Garage no encontrado.', 404);
+    }
+    if (!garage.id_sede) throwError('El garage no tiene una sede asociada.', 400);
+    if (!garage.latitud || !garage.longitud) throwError('El garage no tiene coordenadas registradas.', 400);
+
+    const sede = await svc.sedeService.getByIdAsync(garage.id_sede);
+    if (!sede) {
+        console.error(`distancia-sede: sede ${garage.id_sede} no encontrada para garage ${id}`);
+        throwError('Sede no encontrada.', 404);
+    }
+    if (!sede.latitud || !sede.longitud) throwError('La sede no tiene coordenadas registradas.', 400);
+
+    const resultado = await obtenerDistanciaEntrePuntos(
+        parseFloat(sede.latitud), parseFloat(sede.longitud),
+        parseFloat(garage.latitud), parseFloat(garage.longitud)
+    );
+
+    res.status(200).json({
+        garage: {
+            id: garage.id,
+            nombre: garage.nombre || garage.nombre_garage || garage.ubicacion,
+            ubicacion: garage.ubicacion || '',
+            latitud: parseFloat(garage.latitud),
+            longitud: parseFloat(garage.longitud),
+        },
+        sede: {
+            id: sede.id,
+            nombre: sede.nombre || '',
+            ubicacion: sede.ubicacion || '',
+            latitud: parseFloat(sede.latitud),
+            longitud: parseFloat(sede.longitud),
+        },
+        distancia: resultado,
+    });
 });
 
 // CREATE (POST)
