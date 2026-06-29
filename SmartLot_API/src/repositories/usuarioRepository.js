@@ -185,6 +185,25 @@ export default class UsuarioRepository {
         }
     }
 
+    updateContraseñaAsync = async (id, contraseña, updatedBy = null) => {
+        try {
+            const result = await pool.query(
+                `UPDATE usuarios
+                 SET contraseña = $1,
+                     "UpdateBy" = $2,
+                     "UpdateAt" = NOW()
+                 WHERE id = $3
+                   AND COALESCE("Borrado", false) = false
+                 RETURNING *`,
+                [contraseña, updatedBy, id]
+            );
+            return result.rows[0] ?? null;
+        } catch (error) {
+            console.error('Error en updateContraseñaAsync:', error);
+            return null;
+        }
+    }
+
     incrementTokenVersionAsync = async (id) => {
         try {
             const result = await pool.query(

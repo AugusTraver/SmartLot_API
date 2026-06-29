@@ -238,6 +238,22 @@ router.put('/:id', authMiddleware, requireRole(1, 2, 3, 4), async (req, res) => 
     res.status(200).json(data);
 });
 
+// UPDATE CONTRASEÑA (PATCH) - admin, smartlot o el propio usuario
+router.patch(['/:id/contraseña', '/:id/contrasenia', '/:id/contrase%C3%B1a'], authMiddleware, requireRole(1, 4), async (req, res) => {
+    const id = req.params.id;
+
+    if (!isValidId(id)) throwError('El ID proporcionado no es válido.', 400);
+
+    const { contraseña } = req.body;
+    if (!contraseña || !isValidPassword(contraseña)) {
+        throwError('La contraseña debe tener al menos 8 caracteres, mayúsculas, minúsculas y números.', 400);
+    }
+
+    const data = await svc.updateContraseñaAsync(parseInt(id, 10), contraseña, req.usuario);
+    if (!data) throwError('No encontrado: El usuario con ese ID no existe.', 404);
+    res.status(200).json({ message: 'Contraseña actualizada exitosamente.' });
+});
+
 // UPDATE ESTADO (PATCH) - admin o smartlot
 router.patch('/:id/estado', authMiddleware, requireRole(1, 4), async (req, res) => {
     const id = req.params.id;

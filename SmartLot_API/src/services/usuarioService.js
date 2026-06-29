@@ -331,6 +331,23 @@ export default class UsuarioService {
         return await this.repo.updateEstadoAsync(id, activo, requestingUser?.id ?? null);
     }
 
+    updateContraseñaAsync = async (id, contraseña, requestingUser) => {
+        const current = await this.repo.getByIdAsync(id);
+        if (!current) {
+            const error = new Error(`El usuario con ID ${id} no existe.`);
+            error.statusCode = 404;
+            throw error;
+        }
+
+        this._aplicarReglasDeActualizacion({}, requestingUser, id);
+
+        const hash = await bcrypt.hash(contraseña, BCRYPT_ROUNDS);
+
+        await this.repo.incrementTokenVersionAsync(id);
+
+        return await this.repo.updateContraseñaAsync(id, hash, requestingUser?.id ?? null);
+    }
+
     deleteAsync = async (id, requestingUser = null) => {
         const usuario = await this.repo.getByIdAsync(id);
         if (!usuario) {
