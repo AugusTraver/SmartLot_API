@@ -138,6 +138,12 @@ export default class ReservaService {
             throw error;
         }
 
+        if (rol !== 1 && rol !== 4 && Number(current.id_usuario) !== Number(requestingUser.id)) {
+            const error = new Error('No tiene permisos para modificar esta reserva.');
+            error.statusCode = 403;
+            throw error;
+        }
+
         if (Object.keys(entity).length === 0) {
             const error = new Error('Debe enviar al menos un campo para actualizar la reserva.');
             error.statusCode = 400;
@@ -176,14 +182,23 @@ export default class ReservaService {
         return await this.repo.updateAsync(id, mergedEntity);
     }
 
-    deleteAsync = async (id) => await this.cancelarAsync(id);
+    deleteAsync = async (id, requestingUser = null) => await this.cancelarAsync(id, requestingUser);
 
-    cancelarAsync = async (id) => {
+    cancelarAsync = async (id, requestingUser = null) => {
         const reserva = await this.repo.getByIdAsync(id);
         if (!reserva) {
             const error = new Error(`La reserva con ID ${id} no existe.`);
             error.statusCode = 404;
             throw error;
+        }
+
+        if (requestingUser) {
+            const rol = Number(requestingUser.id_rol);
+            if (rol !== 1 && rol !== 4 && Number(reserva.id_usuario) !== Number(requestingUser.id)) {
+                const error = new Error('No tiene permisos para cancelar esta reserva.');
+                error.statusCode = 403;
+                throw error;
+            }
         }
 
         if (reserva.entro && !reserva.salio) {
