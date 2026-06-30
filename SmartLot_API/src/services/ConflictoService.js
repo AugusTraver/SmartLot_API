@@ -1,6 +1,10 @@
 // conflictoService.js
 import ConflictoRepository from '../repositories/ConflictoRepository.js';
 import UsuarioService from './usuarioService.js';
+import { isValidMaxWords } from '../helpers/validatorHelper.js';
+
+const MAX_DESCRIPCION_PALABRAS = 300;
+const MAX_CONFLICTOS_ACTIVOS_EMPLEADO = 5;
 
 export default class ConflictoService {
     constructor() {
@@ -17,8 +21,30 @@ export default class ConflictoService {
 
     getByIdAsync = async (id, requestingUser = null) => await this.repo.getByIdAsync(id, requestingUser);
 
-    createAsync = async (entity) => {
+    createAsync = async (entity, requestingUser = null) => {
         await this._validarRelacionesAsync(entity);
+
+        if (!isValidMaxWords(entity.descripcion, MAX_DESCRIPCION_PALABRAS)) {
+            const error = new Error(`La descripcion no puede tener mas de ${MAX_DESCRIPCION_PALABRAS} palabras.`);
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const userRole = Number(requestingUser?.id_rol);
+        if (userRole === 2) {
+            const count = await this.repo.countActiveByUserAsync(entity.id_usuario);
+            if (count === null) {
+                const error = new Error('Error interno al verificar el limite de conflictos.');
+                error.statusCode = 500;
+                throw error;
+            }
+            if (count >= MAX_CONFLICTOS_ACTIVOS_EMPLEADO) {
+                const error = new Error(`Ya alcanzaste el limite de ${MAX_CONFLICTOS_ACTIVOS_EMPLEADO} reportes activos. Resolve los pendientes antes de crear uno nuevo.`);
+                error.statusCode = 400;
+                throw error;
+            }
+        }
+
         return await this.repo.createAsync(entity);
     }
 

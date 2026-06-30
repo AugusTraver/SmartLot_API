@@ -76,4 +76,13 @@ export const isValidDiaSemana = (dia) => {
     return DIAS_SEMANA.includes(dia);
 };
 
-export const getDiasSemana = () => [...DIAS_SEMANA];
+export const getDiasSemana = () => [...DIAS_SEMANA];
+
+/**
+ * Valida que un texto no exceda la cantidad maxima de palabras.
+ */
+export const isValidMaxWords = (text, maxWords) => {
+    if (typeof text !== 'string') return false;
+    const palabras = text.trim().split(/\s+/).filter(Boolean);
+    return palabras.length <= maxWords;
+};
