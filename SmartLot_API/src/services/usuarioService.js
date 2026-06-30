@@ -6,6 +6,7 @@ import EmpresaService from './empresaService.js';
 import RolService from './rolService.js';
 import GarageService from './garageService.js';
 import UsuarioGarageService from './usuarioGarageService.js';
+import { enviarCorreo, plantillaBienvenida, plantillaCambioContraseña } from './emailService.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
@@ -264,6 +265,11 @@ export default class UsuarioService {
                 await this.usuarioGarageService.createWithClientAsync(nuevoUsuario.id, entity.id_garage, client);
 
                 await client.query('COMMIT');
+
+                const nombreCompleto = `${nuevoUsuario.nombre ?? ''} ${nuevoUsuario.apellido ?? ''}`.trim() || 'Usuario';
+                enviarCorreo(nuevoUsuario.email, 'Bienvenido a SmartLot', plantillaBienvenida(nombreCompleto, nuevoUsuario.email))
+                    .catch(err => console.error('Error al enviar correo de bienvenida:', err));
+
                 return nuevoUsuario;
             } catch (error) {
                 try { await client.query('ROLLBACK'); } catch (rollbackError) { console.error('ROLLBACK falló:', rollbackError); }
@@ -272,7 +278,13 @@ export default class UsuarioService {
                 client.release();
             }
         } else {
-            return await this.repo.createAsync(entity);
+            const nuevoUsuario = await this.repo.createAsync(entity);
+
+            const nombreCompleto = `${nuevoUsuario.nombre ?? ''} ${nuevoUsuario.apellido ?? ''}`.trim() || 'Usuario';
+            enviarCorreo(nuevoUsuario.email, 'Bienvenido a SmartLot', plantillaBienvenida(nombreCompleto, nuevoUsuario.email))
+                .catch(err => console.error('Error al enviar correo de bienvenida:', err));
+
+            return nuevoUsuario;
         }
     }
 
@@ -345,7 +357,13 @@ export default class UsuarioService {
 
         await this.repo.incrementTokenVersionAsync(id);
 
-        return await this.repo.updateContraseñaAsync(id, hash, requestingUser?.id ?? null);
+        const result = await this.repo.updateContraseñaAsync(id, hash, requestingUser?.id ?? null);
+
+        const nombreCompleto = `${current.nombre ?? ''} ${current.apellido ?? ''}`.trim() || 'Usuario';
+        enviarCorreo(current.email, 'Contraseña Actualizada - SmartLot', plantillaCambioContraseña(nombreCompleto))
+            .catch(err => console.error('Error al enviar correo de cambio de contraseña:', err));
+
+        return result;
     }
 
     deleteAsync = async (id, requestingUser = null) => {
