@@ -130,6 +130,20 @@ export default class ConflictoRepository {
         } catch (error) { console.error(error); return null; }
     }
 
+    countActiveByUserAsync = async (userId) => {
+        try {
+            const result = await pool.query(
+                `SELECT COUNT(*)::int AS count
+                 FROM conflictos
+                 WHERE id_usuario = $1
+                   AND COALESCE("Borrado", false) = false
+                   AND estado != 'Resuelto'`,
+                [userId]
+            );
+            return result.rows[0]?.count ?? 0;
+        } catch (error) { console.error(error); return null; }
+    }
+
     createAsync = async (entity) => {
         try {
             const superAdminColumn = await getSuperAdminColumnAsync();

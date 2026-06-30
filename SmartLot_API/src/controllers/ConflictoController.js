@@ -81,7 +81,7 @@ router.post('', requireRole(1, 2, 4), async (req, res) => {
         throwError('SuperAdmin debe ser un valor booleano.', 400);
     }
 
-    const data = await svc.createAsync(req.body);
+    const data = await svc.createAsync(req.body, req.usuario);
     if (!data) throwError('Error interno al crear el conflicto.', 500);
     res.status(201).json(data);
 });
