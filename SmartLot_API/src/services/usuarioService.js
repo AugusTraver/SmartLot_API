@@ -206,7 +206,7 @@ export default class UsuarioService {
         // Validar que el garage exista
         const garage = await this.garageService.getByIdAsync(id_garage);
         if (!garage) {
-            const error = new Error(`El garage con ID ${id_garage} no existe.`);
+            const error = new Error(`El garage no existe.`);
             error.statusCode = 404;
             throw error;
         }
@@ -229,7 +229,7 @@ export default class UsuarioService {
             }
             const garage = await this.garageService.getByIdAsync(entity.id_garage);
             if (!garage) {
-                const error = new Error(`El garage con ID ${entity.id_garage} no existe.`);
+                const error = new Error(`El garage no existe.`);
                 error.statusCode = 400;
                 throw error;
             }

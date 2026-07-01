@@ -230,7 +230,7 @@ export default class ReservaService {
             if (reserva.entro && !reserva.salio) {
                 const updatedGarage = await this.garageService.decrementOcupacionReservasWithClientAsync(reserva.id_garage, client);
                 if (!updatedGarage) {
-                    const error = new Error(`Error al liberar la ocupacion del garage con ID ${reserva.id_garage}.`);
+                    const error = new Error(`Error al liberar la ocupacion del garage.`);
                     error.statusCode = 500;
                     throw error;
                 }
@@ -288,7 +288,7 @@ export default class ReservaService {
 
             const garage = await this.garageService.getByIdForUpdateWithClientAsync(reserva.id_garage, client);
             if (!garage) {
-                const error = new Error(`El garage con ID ${reserva.id_garage} no existe.`);
+                const error = new Error(`El garage no existe.`);
                 error.statusCode = 400;
                 throw error;
             }
@@ -305,7 +305,7 @@ export default class ReservaService {
 
             const updatedGarage = await this.garageService.incrementOcupacionReservasWithClientAsync(reserva.id_garage, client);
             if (!updatedGarage) {
-                const error = new Error(`El garage con ID ${reserva.id_garage} no tiene capacidad disponible para registrar el ingreso.`);
+                const error = new Error(`El garage no tiene capacidad disponible para registrar el ingreso.`);
                 error.statusCode = 400;
                 throw error;
             }
@@ -346,7 +346,7 @@ export default class ReservaService {
 
             const garage = await this.garageService.getByIdForUpdateWithClientAsync(reserva.id_garage, client);
             if (!garage) {
-                const error = new Error(`El garage con ID ${reserva.id_garage} no existe.`);
+                const error = new Error(`El garage no existe.`);
                 error.statusCode = 400;
                 throw error;
             }
@@ -360,7 +360,7 @@ export default class ReservaService {
 
             const updatedGarage = await this.garageService.decrementOcupacionReservasWithClientAsync(reserva.id_garage, client);
             if (!updatedGarage) {
-                const error = new Error(`La ocupacion de reservas del garage con ID ${reserva.id_garage} ya esta en cero.`);
+                const error = new Error(`La ocupacion de reservas del garage ya esta en cero.`);
                 error.statusCode = 400;
                 throw error;
             }
@@ -378,7 +378,7 @@ export default class ReservaService {
     getDisponibilidadPorHoraAsync = async (garage_id, fecha) => {
         const garage = await this.garageService.getByIdAsync(garage_id);
         if (!garage) {
-            const error = new Error(`El garage con ID ${garage_id} no existe.`);
+            const error = new Error(`El garage no existe.`);
             error.statusCode = 404;
             throw error;
         }
@@ -468,7 +468,7 @@ export default class ReservaService {
         if (entity.id_garage) {
             garage = await this.garageService.getByIdAsync(entity.id_garage);
             if (!garage) {
-                errores.push(`El garage con ID ${entity.id_garage} no existe.`);
+                errores.push(`El garage no existe.`);
             } else {
                 try {
                     this._validarGarageDisponible(garage);
@@ -490,7 +490,7 @@ export default class ReservaService {
         if (usuario && usuario.id_empresa && garage && garage.id_sede) {
             const sede = await this.sedeService.getByIdAsync(garage.id_sede);
             if (sede && Number(sede.id_empresa) !== Number(usuario.id_empresa)) {
-                errores.push(`El garage con ID ${entity.id_garage} no pertenece a la misma empresa que el usuario.`);
+                errores.push(`El garage no pertenece a la misma empresa que el usuario.`);
             }
         }
 
@@ -578,7 +578,7 @@ export default class ReservaService {
 
         const garage = await this.garageService.getByIdAsync(entity.id_garage);
         if (!garage) {
-            const error = new Error(`El garage con ID ${entity.id_garage} no existe.`);
+            const error = new Error(`El garage no existe.`);
             error.statusCode = 400;
             throw error;
         }
@@ -586,7 +586,7 @@ export default class ReservaService {
         this._validarGarageDisponible(garage);
 
         if (garage.dias && garage.dias.length > 0 && entity.dia && !garage.dias.includes(entity.dia)) {
-            const error = new Error(`El garage con ID ${entity.id_garage} no esta disponible los ${entity.dia}.`);
+            const error = new Error(`El garage no esta disponible los ${entity.dia}.`);
             error.statusCode = 400;
             throw error;
         }
@@ -605,13 +605,13 @@ export default class ReservaService {
             const cierreMinutos = parseInt(cierreParts[0], 10) * 60 + parseInt(cierreParts[1], 10);
 
             if (entradaMinutos < aperturaMinutos) {
-                const error = new Error(`El garage con ID ${entity.id_garage} abre a las ${garage.hora_apertura}.`);
+                const error = new Error(`El garage abre a las ${garage.hora_apertura.split(':').slice(0, 2).join(':')}.`);
                 error.statusCode = 400;
                 throw error;
             }
 
             if (salidaMinutos > cierreMinutos) {
-                const error = new Error(`El garage con ID ${entity.id_garage} cierra a las ${garage.hora_cierre}.`);
+                const error = new Error(`El garage cierra a las ${garage.hora_cierre.split(':').slice(0, 2).join(':')}.`);
                 error.statusCode = 400;
                 throw error;
             }
@@ -622,7 +622,7 @@ export default class ReservaService {
             : (garage.capacidad || 0);
 
         if (capReservas <= 0) {
-            const error = new Error(`El garage con ID ${entity.id_garage} no tiene capacidad disponible para reservas.`);
+            const error = new Error(`El garage no tiene capacidad disponible para reservas.`);
             error.statusCode = 400;
             throw error;
         }
@@ -658,7 +658,7 @@ export default class ReservaService {
         }
 
         if (max > capReservas) {
-            const error = new Error(`El garage con ID ${entity.id_garage} supera su capacidad maxima de reservas (${capReservas}) durante el periodo solicitado.`);
+            const error = new Error(`El garage supera su capacidad maxima de reservas (${capReservas}) durante el periodo solicitado.`);
             error.statusCode = 400;
             throw error;
         }
@@ -682,13 +682,13 @@ export default class ReservaService {
 
     _validarGarageDisponible = (garage) => {
         if (garage.estado === false) {
-            const error = new Error(`El garage con ID ${garage.id} no esta disponible.`);
+            const error = new Error(`El garage no esta disponible.`);
             error.statusCode = 400;
             throw error;
         }
 
         if (!garage.capacidad || garage.capacidad <= 0) {
-            const error = new Error(`El garage con ID ${garage.id} no tiene capacidad configurada.`);
+            const error = new Error(`El garage no tiene capacidad configurada.`);
             error.statusCode = 400;
             throw error;
         }
@@ -700,7 +700,7 @@ export default class ReservaService {
         const currentRes = garage.ocupacion_reservas || 0;
 
         if (currentNoRes + currentRes >= totalCap) {
-            const error = new Error(`El garage con ID ${garage.id} esta completamente lleno.`);
+            const error = new Error(`El garage esta completamente lleno.`);
             error.statusCode = 400;
             throw error;
         }
@@ -713,7 +713,7 @@ export default class ReservaService {
         const currentRes = garage.ocupacion_reservas || 0;
 
         if (currentRes >= capReservas) {
-            const error = new Error(`El garage con ID ${garage.id} no tiene lugares disponibles para reservas.`);
+            const error = new Error(`El garage no tiene lugares disponibles para reservas.`);
             error.statusCode = 400;
             throw error;
         }

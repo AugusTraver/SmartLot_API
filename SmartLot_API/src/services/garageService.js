@@ -41,7 +41,7 @@ export default class GarageService {
     getDiasAsync = async (id_garage) => {
         const garage = await this.repo.getByIdAsync(id_garage);
         if (!garage) {
-            const error = new Error(`El garage con ID ${id_garage} no existe.`);
+            const error = new Error(`El garage no existe.`);
             error.statusCode = 404;
             throw error;
         }
@@ -51,7 +51,7 @@ export default class GarageService {
     addDiaAsync = async (id_garage, dia) => {
         const garage = await this.repo.getByIdAsync(id_garage);
         if (!garage) {
-            const error = new Error(`El garage con ID ${id_garage} no existe.`);
+            const error = new Error(`El garage no existe.`);
             error.statusCode = 404;
             throw error;
         }
@@ -66,7 +66,7 @@ export default class GarageService {
     removeDiaAsync = async (id_garage, dia) => {
         const garage = await this.repo.getByIdAsync(id_garage);
         if (!garage) {
-            const error = new Error(`El garage con ID ${id_garage} no existe.`);
+            const error = new Error(`El garage no existe.`);
             error.statusCode = 404;
             throw error;
         }
@@ -81,7 +81,7 @@ export default class GarageService {
     registrarIngresoNoReservaAsync = async (id) => {
         const garage = await this.repo.getByIdAsync(id);
         if (!garage) {
-            const error = new Error(`El garage con ID ${id} no existe.`);
+            const error = new Error(`El garage no existe.`);
             error.statusCode = 404;
             throw error;
         }
@@ -101,7 +101,7 @@ export default class GarageService {
         }
 
         if (currentNoRes + currentRes >= totalCap) {
-            const error = new Error(`El garage con ID ${id} está completamente lleno (capacidad total: ${totalCap}).`);
+            const error = new Error(`El garage está completamente lleno (capacidad total: ${totalCap}).`);
             error.statusCode = 400;
             throw error;
         }
@@ -112,7 +112,7 @@ export default class GarageService {
     registrarEgresoNoReservaAsync = async (id) => {
         const garage = await this.repo.getByIdAsync(id);
         if (!garage) {
-            const error = new Error(`El garage con ID ${id} no existe.`);
+            const error = new Error(`El garage no existe.`);
             error.statusCode = 404;
             throw error;
         }
